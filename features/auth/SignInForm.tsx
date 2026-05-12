@@ -124,7 +124,7 @@ export function SignInForm() {
             {loading ? (
               <span className="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
             ) : null}
-            Sign In <span className="text-[26px] leading-none">›</span>
+            Sign In <ArrowRight className="size-3.5" />
           </button>
         </form>
 

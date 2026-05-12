@@ -3,22 +3,28 @@
 import { CompanyStep } from "./CompanyStep";
 import { AdminProfileStep } from "./AdminProfileStep";
 import { ReviewStep } from "./ReviewStep";
+import { VerificationPending } from "./VerificationPending";
 import { AdminSetupFooter, AdminSetupTopbar } from "./AuthShell";
 import { StepIndicator } from "./StepIndicator";
 import { useAuthStore } from "@/store/auth-store";
 
 export function SignupContainer() {
   const currentStep = useAuthStore((state) => state.currentStep);
+  const success = useAuthStore((state) => state.success);
+
+  if (success) {
+    return <VerificationPending />;
+  }
 
   if (currentStep === 3) {
     return (
       <div className="min-h-screen bg-white">
         <AdminSetupTopbar wide />
-        <div className="pt-4">
+        <div className="pt-14">
           <StepIndicator currentStep={currentStep} />
           <ReviewStep />
         </div>
-        <footer className="flex min-h-[52px] items-center border-t border-[#edf0f3] px-[11.5%] text-[14px] font-medium text-[#9aa1ad]">
+        <footer className="flex min-h-[112px] items-center border-t border-[#edf0f3] px-[11.5%] text-[14px] font-medium text-[#9aa1ad]">
           <div className="flex items-center gap-3 text-brand-red">
             <span className="font-extrabold">Sherix</span>
           </div>
