@@ -14,11 +14,11 @@ export function SignupContainer() {
     return (
       <div className="min-h-screen bg-white">
         <AdminSetupTopbar wide />
-        <div className="pt-14">
-          <StepIndicator currentStep={currentStep} reviewStyle />
+        <div className="pt-4">
+          <StepIndicator currentStep={currentStep} />
           <ReviewStep />
         </div>
-        <footer className="flex min-h-[112px] items-center border-t border-[#edf0f3] px-[11.5%] text-[14px] font-medium text-[#9aa1ad]">
+        <footer className="flex min-h-[52px] items-center border-t border-[#edf0f3] px-[11.5%] text-[14px] font-medium text-[#9aa1ad]">
           <div className="flex items-center gap-3 text-brand-red">
             <span className="font-extrabold">Sherix</span>
           </div>

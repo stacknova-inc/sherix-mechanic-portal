@@ -1,4 +1,3 @@
-import { Check } from "lucide-react";
 import { cn } from "@/utils/cn";
 import type { SignupStep } from "@/types/auth";
 
@@ -8,35 +7,7 @@ const steps = [
   { id: 3, label: "Review" }
 ] as const;
 
-export function StepIndicator({ currentStep, reviewStyle = false }: { currentStep: SignupStep; reviewStyle?: boolean }) {
-  if (reviewStyle) {
-    return (
-      <div className="mx-auto grid w-[560px] max-w-full grid-cols-3 gap-12">
-        {steps.map((step) => {
-          const completed = step.id < currentStep;
-          const active = step.id === currentStep;
-          return (
-            <div key={step.id} className="flex flex-col items-center gap-3">
-              <span
-                className={cn(
-                  "flex size-11 items-center justify-center rounded-full border text-[15px] font-extrabold",
-                  active && "border-brand-red bg-brand-red text-white shadow-[0_8px_18px_rgba(228,7,47,0.18)]",
-                  completed && "border-[#d9dde4] bg-white text-brand-dark",
-                  !active && !completed && "border-[#e5e8ee] bg-white text-[#a1a7b0]"
-                )}
-              >
-                {completed ? <Check className="size-5" /> : step.id}
-              </span>
-              <span className={cn("text-[12px] font-extrabold uppercase text-[#9aa1ad]", active && "text-brand-red")}>
-                {step.id === 1 ? "Company Info" : step.id === 2 ? "Admin Profile" : "Review & Confirm"}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    );
-  }
-
+export function StepIndicator({ currentStep }: { currentStep: SignupStep }) {
   return (
     <div className="mb-7 flex items-center justify-center">
       {steps.map((step, index) => {
