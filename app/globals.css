@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #ffffff;
+  --foreground: #17191f;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  background: #f6f7f8;
+}
+
+body {
+  min-height: 100%;
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-inter), Inter, Arial, sans-serif;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+@layer components {
+  .auth-input {
+    @apply h-[40px] w-full rounded-[8px] border border-[#dfe3e9] bg-white pl-9 pr-3 text-[12px] font-medium text-brand-dark outline-none transition placeholder:text-[#9ba3ae] focus:border-brand-red focus:ring-4 focus:ring-red-50;
+  }
+
+  .auth-label {
+    @apply mb-1.5 block text-[11px] font-semibold leading-none text-[#333842];
+  }
+
+  .auth-error {
+    @apply mt-1 text-[10px] font-medium text-brand-red;
+  }
+}
