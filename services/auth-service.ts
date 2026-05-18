@@ -1,6 +1,47 @@
-import type { AuthResponse, LoginCredentials, SignupFiles, SignupFormData } from "@/types/auth";
+import type {
+  AuthResponse,
+  AuthUser,
+  LoginCredentials,
+  SignupFiles,
+  SignupFormData,
+} from "@/types/auth";
 
-const AUTH_API_BASE_URL = process.env.NEXT_PUBLIC_AUTH_API_BASE_URL;
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ??
+  process.env.NEXT_PUBLIC_AUTH_API_BASE_URL;
+
+const AUTH_TOKEN_STORAGE_KEY = "sherix-auth-token";
+
+type BackendAuthResponse = {
+  token?: string;
+  access_token?: string;
+  accessToken?: string;
+  user?: Partial<AuthUser>;
+  data?: {
+    token?: string;
+    access_token?: string;
+    accessToken?: string;
+    user?: Partial<AuthUser>;
+  };
+  message?: string;
+  detail?: string;
+  error?: string;
+};
+
+type BackendUser = Partial<AuthUser> & {
+  fullName?: string;
+  personalEmail?: string;
+};
+
+function getApiUrl(path: string): string {
+  if (!API_BASE_URL) {
+    throw new Error(
+      "Missing API base URL. Set NEXT_PUBLIC_API_BASE_URL before submitting auth requests.",
+    );
+  }
+
+  return `${API_BASE_URL.replace(/\/$/, "")}${path}`;
+}
 
 async function parseResponse<T>(response: Response): Promise<T> {
   const contentType = response.headers.get("content-type");
@@ -9,75 +50,156 @@ async function parseResponse<T>(response: Response): Promise<T> {
     : { message: await response.text() };
 
   if (!response.ok) {
-    throw new Error(data?.message ?? "Request failed. Please try again.");
+    const message =
+      data?.message ??
+      data?.detail ??
+      data?.error ??
+      "Request failed. Please try again.";
+
+    throw new Error(message);
   }
 
   return data as T;
 }
 
+function appendIfFile(formData: FormData, key: string, file: File | null | undefined) {
+  if (file instanceof File && file.size > 0) {
+    formData.append(key, file);
+  }
+}
+
+function parseServices(servicesOffered: string): string[] {
+  return servicesOffered
+    .split(",")
+    .map((service) => service.trim())
+    .filter(Boolean);
+}
+
 export function buildSignupPayload(data: SignupFormData, files: SignupFiles) {
   const formData = new FormData();
 
-  Object.entries(data).forEach(([key, value]) => {
-    formData.append(key, String(value));
+  formData.append("company_name", data.companyName);
+  formData.append("business_email", data.businessEmail);
+  formData.append("company_number", data.companyNumber);
+  formData.append("coverage_area", data.coverage_area);
+  formData.append("bank_details", data.bankDetails);
+
+  parseServices(data.servicesOffered).forEach((service) => {
+    formData.append("services[]", service);
   });
 
-  Object.entries(files).forEach(([key, file]) => {
-    if (file) {
-      formData.append(key, file);
-    }
-  });
+  formData.append("full_name", data.fullName);
+  formData.append("personal_email", data.personalEmail);
+  formData.append("password", data.password);
+  formData.append("confirm_password", data.confirmPassword);
+  formData.append("working_hours", data.workingHours);
+  formData.append("terms_accepted", data.signedAgreementAccepted ? "true" : "false");
+
+  appendIfFile(formData, "registration_certificate", files.registrationCertificate);
+  appendIfFile(formData, "proof_of_address", files.garageProof);
+  appendIfFile(formData, "business_insurance", files.businessInsurance);
+  appendIfFile(formData, "ghana_card", files.ghanaCard);
+  appendIfFile(formData, "admin_insurance", files.insuranceUpload);
 
   return formData;
 }
 
-function mockAuthResponse(data: Pick<SignupFormData, "fullName" | "personalEmail">): AuthResponse {
+function getToken(response: BackendAuthResponse): string {
+  const token =
+    response.token ??
+    response.access_token ??
+    response.accessToken ??
+    response.data?.token ??
+    response.data?.access_token ??
+    response.data?.accessToken;
+
+  if (!token) {
+    throw new Error("Authentication succeeded but no token was returned.");
+  }
+
+  return token;
+}
+
+function normalizeUser(
+  response: BackendAuthResponse,
+  fallback: Pick<AuthUser, "name" | "email">,
+): AuthUser {
+  const backendUser = (response.user ?? response.data?.user) as
+    | BackendUser
+    | undefined;
+
   return {
-    token: "frontend-preview-token",
-    user: {
-      name: data.fullName,
-      email: data.personalEmail,
-      role: "Provider Admin"
-    },
-    message: "Frontend setup flow completed."
+    id: backendUser?.id,
+    name: backendUser?.name ?? backendUser?.fullName ?? fallback.name,
+    email: backendUser?.email ?? backendUser?.personalEmail ?? fallback.email,
+    role: backendUser?.role ?? "Provider Admin",
   };
 }
 
-export async function submitSignup(data: SignupFormData, files: SignupFiles) {
-  const formData = buildSignupPayload(data, files);
-
-  if (!AUTH_API_BASE_URL) {
-    return mockAuthResponse(data);
-  }
-
-  const response = await fetch(`${AUTH_API_BASE_URL}/api/auth/setup`, {
-    method: "POST",
-    body: formData
-  });
-
-  return parseResponse<AuthResponse>(response);
+function normalizeAuthResponse(
+  response: BackendAuthResponse,
+  fallbackUser: Pick<AuthUser, "name" | "email">,
+): AuthResponse {
+  return {
+    token: getToken(response),
+    user: normalizeUser(response, fallbackUser),
+    message: response.message,
+  };
 }
 
-export async function signIn(credentials: LoginCredentials) {
-  if (!AUTH_API_BASE_URL) {
-    return {
-      token: "frontend-preview-token",
-      user: {
-        name: "Sherix Admin",
-        email: credentials.email,
-        role: "Provider Admin"
-      },
-      message: "Frontend sign-in completed."
-    };
+export function persistAuthToken(token: string) {
+  if (typeof window !== "undefined") {
+    window.localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
   }
+}
 
-  const response = await fetch(`${AUTH_API_BASE_URL}/api/auth/login`, {
+export function clearPersistedAuthToken() {
+  if (typeof window !== "undefined") {
+    window.localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+  }
+}
+
+export async function submitSignup(
+  data: SignupFormData,
+  files: SignupFiles,
+): Promise<AuthResponse> {
+  const response = await fetch(getApiUrl("/company-onboarding/register"), {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(credentials)
+    body: buildSignupPayload(data, files),
   });
 
-  return parseResponse<AuthResponse>(response);
+  const parsedResponse = await parseResponse<BackendAuthResponse>(response);
+  const authResponse = normalizeAuthResponse(parsedResponse, {
+    name: data.fullName,
+    email: data.personalEmail,
+  });
+
+  persistAuthToken(authResponse.token);
+
+  return authResponse;
+}
+
+export async function signIn(
+  credentials: LoginCredentials,
+): Promise<AuthResponse> {
+  const response = await fetch(getApiUrl("/auth/login"), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      email: credentials.email,
+      password: credentials.password,
+    }),
+  });
+
+  const parsedResponse = await parseResponse<BackendAuthResponse>(response);
+  const authResponse = normalizeAuthResponse(parsedResponse, {
+    name: "Sherix Admin",
+    email: credentials.email,
+  });
+
+  persistAuthToken(authResponse.token);
+
+  return authResponse;
 }
