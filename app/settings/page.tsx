@@ -1,5 +1,5 @@
-import { DashboardPlaceholderPage } from "@/features/dashboard/pages/DashboardPlaceholderPage";
+import { SettingsProfilePage } from "@/features/dashboard/pages/SettingsProfilePage";
 
 export default function SettingsPage() {
-  return <DashboardPlaceholderPage page="settings" />;
+  return <SettingsProfilePage />;
 }
