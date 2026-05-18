@@ -3,12 +3,18 @@
 import { CompanyStep } from "./CompanyStep";
 import { AdminProfileStep } from "./AdminProfileStep";
 import { ReviewStep } from "./ReviewStep";
+import { VerificationPending } from "./VerificationPending";
 import { AdminSetupFooter, AdminSetupTopbar } from "./AuthShell";
 import { StepIndicator } from "./StepIndicator";
 import { useAuthStore } from "@/store/auth-store";
 
 export function SignupContainer() {
   const currentStep = useAuthStore((state) => state.currentStep);
+  const success = useAuthStore((state) => state.success);
+
+  if (success) {
+    return <VerificationPending />;
+  }
 
   if (currentStep === 3) {
     return (
