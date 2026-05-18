@@ -14,12 +14,11 @@ export const initialSignupData: SignupFormData = {
   businessEmail: "",
   companyNumber: "",
   coverage_area: "",
-  bankDetails: "",
   fullName: "",
   personalEmail: "",
   password: "",
   confirmPassword: "",
-  servicesOffered: "",
+  servicesOffered: [],
   workingHours: "",
   signedAgreementAccepted: false,
 };

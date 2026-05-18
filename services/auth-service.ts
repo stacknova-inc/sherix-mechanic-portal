@@ -5,12 +5,12 @@ import type {
   SignupFiles,
   SignupFormData,
 } from "@/types/auth";
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ??
-  process.env.NEXT_PUBLIC_AUTH_API_BASE_URL;
+import { normalizeServiceIds } from "../features/auth/service-utils";
+import { DEVICE_ID, getApiUrl } from "@/services/api-config";
 
 const AUTH_TOKEN_STORAGE_KEY = "sherix-auth-token";
+const SERVICE_ID_PATTERN = /^[a-f0-9]{24}$/i;
+const WORKING_HOURS_PATTERN = /^(?:[1-9]|1\d|2[0-4])$/;
 
 type BackendAuthResponse = {
   token?: string;
@@ -33,16 +33,6 @@ type BackendUser = Partial<AuthUser> & {
   personalEmail?: string;
 };
 
-function getApiUrl(path: string): string {
-  if (!API_BASE_URL) {
-    throw new Error(
-      "Missing API base URL. Set NEXT_PUBLIC_API_BASE_URL before submitting auth requests.",
-    );
-  }
-
-  return `${API_BASE_URL.replace(/\/$/, "")}${path}`;
-}
-
 async function parseResponse<T>(response: Response): Promise<T> {
   const contentType = response.headers.get("content-type");
   const data = contentType?.includes("application/json")
@@ -62,44 +52,74 @@ async function parseResponse<T>(response: Response): Promise<T> {
   return data as T;
 }
 
-function appendIfFile(formData: FormData, key: string, file: File | null | undefined) {
-  if (file instanceof File && file.size > 0) {
-    formData.append(key, file);
+function appendRequiredFile(
+  formData: FormData,
+  key: string,
+  file: File | null | undefined,
+) {
+  if (!(file instanceof File) || file.size <= 0) {
+    throw new Error(`${key} must be uploaded as a file.`);
   }
+
+  formData.append(key, file);
 }
 
-function parseServices(servicesOffered: string): string[] {
-  return servicesOffered
-    .split(",")
-    .map((service) => service.trim())
-    .filter(Boolean);
+function getValidServiceIds(servicesOffered: SignupFormData["servicesOffered"]) {
+  const serviceIds = normalizeServiceIds(servicesOffered);
+
+  if (!serviceIds.length) {
+    throw new Error("Select at least one service.");
+  }
+
+  serviceIds.forEach((serviceId) => {
+    if (!SERVICE_ID_PATTERN.test(serviceId)) {
+      throw new Error("Each service must be selected separately.");
+    }
+  });
+
+  return serviceIds;
+}
+
+function getValidWorkingHours(workingHours: string) {
+  const normalizedWorkingHours = workingHours.trim();
+
+  if (!WORKING_HOURS_PATTERN.test(normalizedWorkingHours)) {
+    throw new Error("Working hours must be a number from 1 to 24.");
+  }
+
+  return normalizedWorkingHours;
 }
 
 export function buildSignupPayload(data: SignupFormData, files: SignupFiles) {
   const formData = new FormData();
+  const serviceIds = getValidServiceIds(data.servicesOffered);
+  const workingHours = getValidWorkingHours(data.workingHours);
+
+  if (!data.signedAgreementAccepted) {
+    throw new Error("You must accept the terms before creating an account.");
+  }
 
   formData.append("company_name", data.companyName);
   formData.append("business_email", data.businessEmail);
   formData.append("company_number", data.companyNumber);
   formData.append("coverage_area", data.coverage_area);
-  formData.append("bank_details", data.bankDetails);
 
-  parseServices(data.servicesOffered).forEach((service) => {
-    formData.append("services[]", service);
+  serviceIds.forEach((serviceId) => {
+    formData.append("services", serviceId);
   });
 
   formData.append("full_name", data.fullName);
   formData.append("personal_email", data.personalEmail);
   formData.append("password", data.password);
   formData.append("confirm_password", data.confirmPassword);
-  formData.append("working_hours", data.workingHours);
-  formData.append("terms_accepted", data.signedAgreementAccepted ? "true" : "false");
+  formData.append("working_hours", workingHours);
+  formData.append("terms_accepted", "true");
 
-  appendIfFile(formData, "registration_certificate", files.registrationCertificate);
-  appendIfFile(formData, "proof_of_address", files.garageProof);
-  appendIfFile(formData, "business_insurance", files.businessInsurance);
-  appendIfFile(formData, "ghana_card", files.ghanaCard);
-  appendIfFile(formData, "admin_insurance", files.insuranceUpload);
+  appendRequiredFile(formData, "registration_certificate", files.registrationCertificate);
+  appendRequiredFile(formData, "proof_of_address", files.garageProof);
+  appendRequiredFile(formData, "business_insurance", files.businessInsurance);
+  appendRequiredFile(formData, "ghana_card", files.ghanaCard);
+  appendRequiredFile(formData, "admin_insurance", files.insuranceUpload);
 
   return formData;
 }
@@ -165,6 +185,9 @@ export async function submitSignup(
 ): Promise<AuthResponse> {
   const response = await fetch(getApiUrl("/company-onboarding/register"), {
     method: "POST",
+    headers: {
+      "x-device-id": DEVICE_ID,
+    },
     body: buildSignupPayload(data, files),
   });
 

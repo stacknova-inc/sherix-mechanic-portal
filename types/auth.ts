@@ -12,12 +12,11 @@ export type SignupFormData = {
   businessEmail: string;
   companyNumber: string;
   coverage_area: string;
-  bankDetails: string;
   fullName: string;
   personalEmail: string;
   password: string;
   confirmPassword: string;
-  servicesOffered: string;
+  servicesOffered: string[];
   workingHours: string;
   signedAgreementAccepted: boolean;
 };

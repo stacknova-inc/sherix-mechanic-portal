@@ -13,7 +13,6 @@ export const companySchema = z.object({
   coverage_area: z.string().min(2, "coverage_area is required"),
   registrationCertificate: requiredFile("Registration certificate"),
   garageProof: requiredFile("Proof of garage/workshop address"),
-  bankDetails: z.string().min(8, "Bank or momo details are required"),
   businessInsurance: z.instanceof(File).nullable().optional(),
 });
 
@@ -23,13 +22,11 @@ export const adminSchema = z
     personalEmail: z.string().email("Enter a valid personal email"),
     password: z
       .string()
-      .min(8, "Use at least 8 characters")
-      .regex(/[A-Z]/, "Include an uppercase letter")
-      .regex(/[0-9]/, "Include a number"),
+      .min(8, "Use at least 8 characters"),
     confirmPassword: z.string(),
     ghanaCard: requiredFile("Ghana Card upload"),
-    servicesOffered: z.string().min(3, "Services offered is required"),
-    workingHours: z.string().min(3, "Working hours is required"),
+    servicesOffered: z.array(z.string()).min(1, "Select at least one service"),
+    workingHours: z.string().min(1, "Working hours is required"),
     insuranceUpload: z.instanceof(File).nullable().optional(),
     signedAgreementAccepted: z
       .boolean()

@@ -1,15 +1,21 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { BriefcaseBusiness, Clock3, FileText, LockKeyhole, Mail, X, UserRound } from "lucide-react";
-import { useState } from "react";
+import { BriefcaseBusiness, Check, Clock3, FileText, LockKeyhole, Mail, X, UserRound } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { adminSchema, type AdminFormValues } from "@/features/auth/schemas";
+import { normalizeServiceIds, type PublicService } from "./service-utils";
+import { getPublicServices } from "@/services/services-service";
 import { useAuthStore } from "@/store/auth-store";
+import { cn } from "@/utils/cn";
 import { TextField, UploadField } from "./FormControls";
 
 export function AdminProfileStep() {
   const [agreementOpen, setAgreementOpen] = useState(false);
+  const [services, setServices] = useState<PublicService[]>([]);
+  const [servicesLoading, setServicesLoading] = useState(true);
+  const [servicesError, setServicesError] = useState<string | null>(null);
   const { formData, files, setFormData, setFile, nextStep, previousStep } = useAuthStore();
   const {
     register,
@@ -31,7 +37,49 @@ export function AdminProfileStep() {
     nextStep();
   };
   const agreementAccepted = watch("signedAgreementAccepted");
+  const selectedServices = normalizeServiceIds(watch("servicesOffered"));
   const agreementRegistration = register("signedAgreementAccepted");
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadServices() {
+      try {
+        setServicesLoading(true);
+        setServicesError(null);
+        const publicServices = await getPublicServices();
+
+        if (mounted) {
+          setServices(publicServices);
+        }
+      } catch (error) {
+        if (mounted) {
+          setServices([]);
+          setServicesError(
+            error instanceof Error ? error.message : "Unable to load services.",
+          );
+        }
+      } finally {
+        if (mounted) {
+          setServicesLoading(false);
+        }
+      }
+    }
+
+    loadServices();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const toggleService = (serviceId: string) => {
+    const nextServices = selectedServices.includes(serviceId)
+      ? selectedServices.filter((id) => id !== serviceId)
+      : [...selectedServices, serviceId];
+
+    setValue("servicesOffered", nextServices, { shouldValidate: true });
+  };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
@@ -61,8 +109,62 @@ export function AdminProfileStep() {
             setValue("ghanaCard", file as File, { shouldValidate: true });
           }}
         />
-        <TextField label="Services Offered" placeholder="Express Delivery, Heavy Cargo" icon={BriefcaseBusiness} registration={register("servicesOffered")} error={errors.servicesOffered} />
-        <TextField label="Working Hours" placeholder="Mon - Sat | 08:00 AM - 09:00 PM" icon={Clock3} registration={register("workingHours")} error={errors.workingHours} />
+        <div className="md:col-span-2">
+          <div className="mb-2 flex items-center gap-2">
+            <BriefcaseBusiness className="size-[14px] text-[#9ba3ae]" />
+            <span className="auth-label mb-0">Services <span className="text-brand-red">*</span></span>
+          </div>
+          {servicesLoading ? (
+            <div className="rounded-[8px] border border-[#dfe3e9] bg-white px-3 py-4 text-[12px] font-semibold text-[#687181]">
+              Loading services...
+            </div>
+          ) : servicesError ? (
+            <div className="rounded-[8px] border border-brand-red bg-[#fff4f6] px-3 py-4 text-[12px] font-semibold text-brand-red">
+              {servicesError}
+            </div>
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2">
+              {services.map((service) => {
+              const selected = selectedServices.includes(service.id);
+
+              return (
+                <button
+                  key={service.id}
+                  type="button"
+                  onClick={() => toggleService(service.id)}
+                  className={cn(
+                    "flex min-h-[48px] items-center gap-3 rounded-[8px] border bg-white px-3 text-left transition",
+                    selected
+                      ? "border-brand-red bg-[#fff4f6] text-brand-dark shadow-[0_10px_18px_rgba(228,7,47,0.08)]"
+                      : "border-[#dfe3e9] text-[#687181] hover:border-brand-red",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "flex size-5 shrink-0 items-center justify-center rounded border",
+                      selected
+                        ? "border-brand-red bg-brand-red text-white"
+                        : "border-[#cfd4dc] bg-white text-transparent",
+                    )}
+                  >
+                    <Check className="size-3.5" />
+                  </span>
+                  <span>
+                    <span className="block text-[12px] font-extrabold">{service.name}</span>
+                    <span className="mt-0.5 block text-[10px] font-medium text-[#9aa1ad]">
+                      {service.id}
+                    </span>
+                  </span>
+                </button>
+              );
+              })}
+            </div>
+          )}
+          {errors.servicesOffered ? (
+            <span className="auth-error">{errors.servicesOffered.message}</span>
+          ) : null}
+        </div>
+        <TextField label="Working Hours" placeholder="8" icon={Clock3} registration={register("workingHours")} error={errors.workingHours} />
         <UploadField
           label="Insurance Upload"
           placeholder="Upload Insurance PDF"

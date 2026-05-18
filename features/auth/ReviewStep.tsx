@@ -1,6 +1,7 @@
 "use client";
 
 import { Building2, CheckCircle2, FileText, Info, UserRound } from "lucide-react";
+import { getServiceNames } from "./service-utils";
 import { useToast } from "@/hooks/use-toast";
 import { submitSignup } from "@/services/auth-service";
 import { useAuthStore } from "@/store/auth-store";
@@ -78,11 +79,14 @@ export function ReviewStep() {
   };
 
   return (
-    <main className="mx-auto w-full max-w-[1040px] px-8 pb-4 ">
+    <main className="mx-auto w-full max-w-[1040px] px-8 pb-16 pt-10">
       <div className="mb-9 mx-auto max-w-[720px]">
         <h1 className="text-center text-[30px] font-extrabold tracking-[-0.02em] text-brand-dark">
           Review Your Registration Summary
         </h1>
+        <p className="mx-auto mt-3 max-w-[560px] text-center text-[14px] font-medium leading-6 text-[#8e8f94]">
+          Confirm the details entered in the company and admin profile steps.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -104,7 +108,6 @@ export function ReviewStep() {
               value: displayFile(files.garageProof, "Uploaded"),
               file: true,
             },
-            { label: "Bank / Momo Details", value: formData.bankDetails },
             {
               label: "Business Insurance",
               value: files.businessInsurance ? displayFile(files.businessInsurance, "Uploaded") : "Not uploaded",
@@ -124,7 +127,7 @@ export function ReviewStep() {
               value: displayFile(files.ghanaCard, "Uploaded"),
               file: true,
             },
-            { label: "Services Offered", value: formData.servicesOffered },
+            { label: "Services", value: getServiceNames(formData.servicesOffered) },
             { label: "Working Hours", value: formData.workingHours },
             {
               label: "Insurance Upload",
@@ -140,27 +143,27 @@ export function ReviewStep() {
         />
       </div>
 
-      <section className="mt-8  px-6 py-7">
+      <section className="mt-8 rounded-[8px] border border-[#edf0f3] bg-[#fbfcfc] px-6 py-7">
         <div className="mx-auto flex max-w-[680px] items-start gap-4 text-[13px] font-medium leading-6 text-[#8b919a]">
           <Info className="mt-1 size-4 shrink-0 text-brand-dark" />
           <p>
             By confirming, you acknowledge that the information shown above is accurate.
           </p>
         </div>
-        <div className="mt-6 flex flex-col md:items-center md:justify-between gap-4 sm:flex-row">
+        <div className="mt-6 flex flex-col items-center justify-center gap-4 sm:flex-row">
           <button
             onClick={previousStep}
-            className="h-[40px] w-[120px] rounded-[8px] border border-[#d6dae1] bg-white text-[13px] font-extrabold text-brand-dark"
+            className="h-[48px] w-[180px] rounded-[8px] border border-[#d6dae1] bg-white text-[13px] font-extrabold text-brand-dark"
           >
             Previous Step
           </button>
           <button
             onClick={finalize}
             disabled={loading}
-            className="flex h-[40px] w-[150px] max-w-full items-center justify-center gap-3 rounded-[8px] bg-brand-red text-[13px] font-extrabold text-white shadow-[0_14px_22px_rgba(228,7,47,0.18)] disabled:cursor-not-allowed disabled:opacity-70"
+            className="flex h-[48px] w-[300px] max-w-full items-center justify-center gap-3 rounded-[8px] bg-brand-red text-[13px] font-extrabold text-white shadow-[0_14px_22px_rgba(228,7,47,0.18)] disabled:cursor-not-allowed disabled:opacity-70"
           >
             {loading ? <span className="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white" /> : null}
-            Create Account <span className="text-[18px] leading-none">&rsaquo;</span>
+            Finalize & Create Account <span className="text-[18px] leading-none">&rsaquo;</span>
           </button>
         </div>
       </section>
