@@ -22,32 +22,30 @@ export function DashboardHeader() {
         />
       </label>
 
-      <span className="ml-auto hidden h-8 items-center rounded-full border border-[#eff1f4] px-5 text-xs font-extrabold md:flex">
-        Online Mechanics: 8
-      </span>
+      <div className="ml-auto flex justify-between items-center gap-4">
+        <Link
+          href="/notifications"
+          aria-label="Open notifications"
+          className="relative flex size-9 items-center justify-center rounded-full border border-[#eff1f4] transition hover:border-brand-red hover:text-brand-red"
+        >
+          <Bell className="size-4" />
+          <span className="absolute right-2 top-2 size-2 rounded-full bg-brand-red" />
+        </Link>
+        <Link
+          href="/settings"
+          aria-label="Open settings"
+          className="flex size-9 items-center justify-center rounded-full border border-[#eff1f4] transition hover:border-brand-red hover:text-brand-red"
+        >
+          <Settings className="size-4" />
+        </Link>
 
-      <Link
-        href="/notifications"
-        aria-label="Open notifications"
-        className="relative flex size-9 items-center justify-center rounded-full border border-[#eff1f4] transition hover:border-brand-red hover:text-brand-red"
-      >
-        <Bell className="size-4" />
-        <span className="absolute right-2 top-2 size-2 rounded-full bg-brand-red" />
-      </Link>
-      <Link
-        href="/settings"
-        aria-label="Open settings"
-        className="flex size-9 items-center justify-center rounded-full border border-[#eff1f4] transition hover:border-brand-red hover:text-brand-red"
-      >
-        <Settings className="size-4" />
-      </Link>
-
-      <div className="hidden items-center gap-3 md:flex">
-        <div className="text-right">
-          <p className="text-sm font-extrabold">Graca Yakey</p>
-          <p className="text-[10px] text-[#8f96a3]">Operations Lead</p>
+        <div className="hidden items-center gap-3 md:flex">
+          <div className="text-right">
+            <p className="text-sm font-extrabold">Graca Yakey</p>
+            <p className="text-[10px] text-[#8f96a3]">Operations Lead</p>
+          </div>
+          <div className="size-9 rounded-full bg-[linear-gradient(135deg,#d7c0a4,#5d6b58)] shadow-inner" />
         </div>
-        <div className="size-9 rounded-full bg-[linear-gradient(135deg,#d7c0a4,#5d6b58)] shadow-inner" />
       </div>
     </header>
   );

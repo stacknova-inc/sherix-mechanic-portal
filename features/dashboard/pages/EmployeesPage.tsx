@@ -1,9 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { Grid3x3, Layout, Plus, Search, SlidersHorizontal, UsersRound } from "lucide-react";
+import {
+  BriefcaseBusiness,
+  CircleOff,
+  Plus,
+  Search,
+  SlidersHorizontal,
+  UserCheck,
+  UsersRound,
+} from "lucide-react";
+import { EmployeeStatCard } from "@/features/dashboard/components/EmployeeStatCard";
 import { PageHeader } from "@/features/dashboard/components/PageHeader";
-import { StatCard } from "@/features/dashboard/components/StatCard";
 import {
   EMPLOYEE_SORT_OPTIONS,
   EMPLOYEE_STATUSES,
@@ -50,32 +58,37 @@ export function EmployeesPage() {
       />
 
       <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          label="Total Employees"
+        <EmployeeStatCard
+          title="Total Employees"
           value={stats.total}
-          helper="Registered team members"
+          trend="+4.7%"
+          helper="from last month"
           icon={UsersRound}
+          tone="positive"
         />
-        <StatCard
-          label="Available"
+        <EmployeeStatCard
+          title="Available"
           value={stats.available}
+          trend="+3.2%"
           helper="Ready for assignment"
-          icon={UsersRound}
-          valueClassName="text-green-600"
+          icon={UserCheck}
+          tone="positive"
         />
-        <StatCard
-          label="On Job"
+        <EmployeeStatCard
+          title="On Job"
           value={stats.onJob}
+          trend="+1.8%"
           helper="Currently assigned"
-          icon={UsersRound}
-          valueClassName="text-blue-600"
+          icon={BriefcaseBusiness}
+          tone="info"
         />
-        <StatCard
-          label="Offline"
+        <EmployeeStatCard
+          title="Offline"
           value={stats.offline}
+          trend="-1.3%"
           helper="Not accepting jobs"
-          icon={UsersRound}
-          valueClassName="text-gray-400"
+          icon={CircleOff}
+          tone="danger"
         />
       </div>
 
@@ -101,32 +114,7 @@ export function EmployeesPage() {
           </label>
 
           <div className="flex flex-wrap items-center gap-3">
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setViewMode("list")}
-                className={`rounded-md p-2 ${
-                  viewMode === "list"
-                    ? "bg-gray-100 text-gray-900"
-                    : "text-gray-600 hover:bg-gray-50"
-                }`}
-                title="List view"
-              >
-                <Layout size={18} />
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode("grid")}
-                className={`rounded-md p-2 ${
-                  viewMode === "grid"
-                    ? "bg-gray-100 text-gray-900"
-                    : "text-gray-600 hover:bg-gray-50"
-                }`}
-                title="Grid view"
-              >
-                <Grid3x3 size={18} />
-              </button>
-            </div>
+            
 
             <span className="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700">
               <SlidersHorizontal size={16} />
@@ -171,27 +159,7 @@ export function EmployeesPage() {
           </div>
         </div>
 
-        <div className="mt-4 flex items-center justify-end border-t border-gray-200 pt-4">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-700">Sort by:</span>
-            <select
-              value={filters.sortBy}
-              onChange={(event) =>
-                setFilters((currentFilters) => ({
-                  ...currentFilters,
-                  sortBy: event.target.value as EmployeeSortKey,
-                }))
-              }
-              className="rounded-md border border-gray-300 px-3 py-1 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-red-500"
-            >
-              {EMPLOYEE_SORT_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
+        
       </section>
 
       <div className="mt-6">

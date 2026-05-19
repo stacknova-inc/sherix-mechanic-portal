@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   UserRound,
 } from "lucide-react";
+import { getServiceNames, normalizeServiceIds } from "../../../features/auth/service-utils";
 import { PageHeader } from "@/features/dashboard/components/PageHeader";
 import { DashboardShell } from "@/features/dashboard/layouts/DashboardShell";
 import { useAuthStore } from "@/store/auth-store";
@@ -90,10 +91,9 @@ export function SettingsProfilePage() {
     formData.personalEmail || user?.email,
     "admin@sherix.com",
   );
-  const servicesOffered = valueOrFallback(
-    formData.servicesOffered,
-    "Express Delivery, Heavy Cargo",
-  );
+  const servicesOffered = normalizeServiceIds(formData.servicesOffered).length
+    ? getServiceNames(formData.servicesOffered)
+    : "Express Delivery, Heavy Cargo";
   const workingHours = valueOrFallback(
     formData.workingHours,
     "Mon - Sat | 08:00 AM - 09:00 PM",

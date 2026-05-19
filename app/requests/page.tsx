@@ -1,5 +1,5 @@
-import { DashboardPlaceholderPage } from "@/features/dashboard/pages/DashboardPlaceholderPage";
+import { RequestsManagementPage } from "@/features/requests/RequestsManagementPage";
 
 export default function RequestsPage() {
-  return <DashboardPlaceholderPage page="requests" />;
+  return <RequestsManagementPage />;
 }
