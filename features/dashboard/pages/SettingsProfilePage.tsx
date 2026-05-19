@@ -19,11 +19,6 @@ import { cn } from "@/utils/cn";
 const settingsSections = [
   "My Profile",
   "Security",
-  "Team",
-  "Documents",
-  "Notifications",
-  "Billing",
-  "Data Export",
 ];
 
 function valueOrFallback(value: string | undefined, fallback: string) {

@@ -61,7 +61,6 @@ export function EmployeesPage() {
         <EmployeeStatCard
           title="Total Employees"
           value={stats.total}
-          trend="+4.7%"
           helper="from last month"
           icon={UsersRound}
           tone="positive"
@@ -69,7 +68,6 @@ export function EmployeesPage() {
         <EmployeeStatCard
           title="Available"
           value={stats.available}
-          trend="+3.2%"
           helper="Ready for assignment"
           icon={UserCheck}
           tone="positive"
@@ -77,7 +75,6 @@ export function EmployeesPage() {
         <EmployeeStatCard
           title="On Job"
           value={stats.onJob}
-          trend="+1.8%"
           helper="Currently assigned"
           icon={BriefcaseBusiness}
           tone="info"
@@ -85,7 +82,6 @@ export function EmployeesPage() {
         <EmployeeStatCard
           title="Offline"
           value={stats.offline}
-          trend="-1.3%"
           helper="Not accepting jobs"
           icon={CircleOff}
           tone="danger"
@@ -114,8 +110,6 @@ export function EmployeesPage() {
           </label>
 
           <div className="flex flex-wrap items-center gap-3">
-            
-
             <span className="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700">
               <SlidersHorizontal size={16} />
               Filters
@@ -158,8 +152,6 @@ export function EmployeesPage() {
             </select>
           </div>
         </div>
-
-        
       </section>
 
       <div className="mt-6">

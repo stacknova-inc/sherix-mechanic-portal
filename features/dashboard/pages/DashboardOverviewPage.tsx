@@ -1,12 +1,12 @@
 import { CalendarDays } from "lucide-react";
-import { ActiveJobsTable } from "@/features/dashboard/components/ActiveJobsTable";
-import { ActiveRequestsList } from "@/features/dashboard/components/ActiveRequestsList";
+import { ActiveRequestsTable } from "@/features/dashboard/components/ActiveRequestsTable";
 import { PageHeader } from "@/features/dashboard/components/PageHeader";
 import { RevenueChart } from "@/features/dashboard/components/RevenueChart";
 import { ServiceDistributionChart } from "@/features/dashboard/components/ServiceDistributionChart";
 import { StatCard } from "@/features/dashboard/components/StatCard";
 import { DashboardShell } from "@/features/dashboard/layouts/DashboardShell";
 import { overviewStats } from "@/features/dashboard/mocks/dashboard-mock-data";
+import { EmployeesOnJobList } from "../components/EmployeesOnJobList";
 
 export function DashboardOverviewPage() {
   return (
@@ -72,8 +72,8 @@ export function DashboardOverviewPage() {
       </div>
 
       <div className="mt-12 grid gap-8 xl:grid-cols-[1fr_440px]">
-        <ActiveJobsTable />
-        <ActiveRequestsList />
+        <ActiveRequestsTable />
+        <EmployeesOnJobList />
       </div>
 
       <footer className="mt-16 border-t border-[#eef0f3] py-6 text-xs text-[#6f7784]">

@@ -84,9 +84,7 @@ export function EmployeeTable({ employees, isLoading = false }: EmployeeTablePro
                   {employee.serviceSpecialties.map((specialty) => (
                     <span
                       key={specialty}
-                      className={`inline-block rounded px-2 py-1 text-xs font-medium ${getSpecialtyClasses(
-                        specialty,
-                      )}`}
+                      className="inline-block rounded px-2 py-1 text-xs font-medium "
                     >
                       {specialty}
                     </span>
