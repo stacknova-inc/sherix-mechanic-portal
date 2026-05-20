@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { ToastProvider } from "@/hooks/use-toast";
+import { AppQueryProvider } from "@/providers/query-provider";
 import "./globals.css";
 
 const inter = Inter({
@@ -22,7 +23,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.variable}>
-        <ToastProvider>{children}</ToastProvider>
+        <AppQueryProvider>
+          <ToastProvider>{children}</ToastProvider>
+        </AppQueryProvider>
       </body>
     </html>
   );

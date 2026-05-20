@@ -24,13 +24,14 @@ export function getEmployeeStatusClasses(status: EmployeeStatus): string {
     AVAILABLE: "bg-green-100 text-green-800",
     ON_JOB: "bg-blue-100 text-blue-800",
     OFFLINE: "bg-gray-100 text-gray-800",
+    SUSPENDED: "bg-red-100 text-red-800",
   };
 
   return classes[status];
 }
 
 export function getSpecialtyClasses(specialty: ServiceSpecialty): string {
-  const classes: Record<ServiceSpecialty, string> = {
+  const classes: Record<string, string> = {
     Engine: "bg-red-100 text-red-800",
     Diagnostics: "bg-blue-100 text-blue-800",
     Brakes: "bg-purple-100 text-purple-800",
@@ -39,7 +40,7 @@ export function getSpecialtyClasses(specialty: ServiceSpecialty): string {
     Bodywork: "bg-orange-100 text-orange-800",
   };
 
-  return classes[specialty];
+  return classes[specialty] ?? "bg-gray-100 text-gray-800";
 }
 
 export function filterAndSortEmployees(
@@ -60,7 +61,9 @@ export function filterAndSortEmployees(
 
     const matchesService =
       filters.serviceType === "all" ||
-      employee.serviceSpecialties.includes(filters.serviceType);
+      employee.serviceSpecialties.includes(filters.serviceType) ||
+      (employee.services?.some((service) => service.id === filters.serviceType) ??
+        false);
 
     const matchesStatus =
       filters.status === "all" || employee.status === filters.status;

@@ -21,7 +21,12 @@ export const EXPERIENCE_LEVELS: ExperienceLevel[] = [
   "10+ years",
 ];
 
-export const EMPLOYEE_STATUSES: EmployeeStatus[] = ["AVAILABLE", "ON_JOB", "OFFLINE"];
+export const EMPLOYEE_STATUSES: EmployeeStatus[] = [
+  "AVAILABLE",
+  "ON_JOB",
+  "OFFLINE",
+  "SUSPENDED",
+];
 
 export const EMPLOYEE_SORT_OPTIONS: Array<{ label: string; value: EmployeeSortKey }> = [
   { label: "Most Active", value: "mostActive" },

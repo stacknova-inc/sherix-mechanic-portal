@@ -1,4 +1,4 @@
-export type EmployeeStatus = "AVAILABLE" | "ON_JOB" | "OFFLINE";
+export type EmployeeStatus = "AVAILABLE" | "ON_JOB" | "OFFLINE" | "SUSPENDED";
 
 export type ExperienceLevel =
   | "1-3 years"
@@ -6,31 +6,63 @@ export type ExperienceLevel =
   | "5-10 years"
   | "10+ years";
 
-export type ServiceSpecialty =
-  | "Engine"
-  | "Diagnostics"
-  | "Brakes"
-  | "Electrical"
-  | "Transmission"
-  | "Bodywork";
+export type ServiceSpecialty = string;
+
+export interface EmployeeServiceSummary {
+  id: string;
+  name: string;
+}
 
 export interface Employee {
   id: string;
   fullName: string;
+  name?: string;
   phoneNumber: string;
   email: string | null;
   serviceSpecialties: ServiceSpecialty[];
+  services?: EmployeeServiceSummary[];
   dateOfBirth: string;
   experienceLevel: ExperienceLevel;
+  levelOfExperience?: ExperienceLevel;
   profilePhotoUrl: string | null;
   status: EmployeeStatus;
+  isActive?: boolean;
   jobsCompleted: number;
   onboardedDate: string;
   createdAt: string;
   updatedAt: string;
 }
 
-export type CreateEmployeeInput = Omit<Employee, "id" | "createdAt" | "updatedAt">;
+export interface EmployeeFormValues {
+  name: string;
+  phoneNumber: string;
+  email: string;
+  dateOfBirth: string;
+  levelOfExperience: ExperienceLevel;
+  serviceIds: string[];
+  profilePhoto?: FileList | null;
+}
+
+export interface EmployeeListParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: EmployeeStatus | "all";
+  serviceId?: string | "all";
+}
+
+export interface PaginatedEmployees {
+  employees: Employee[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export type CreateEmployeeInput = EmployeeFormValues;
+export type UpdateEmployeeInput = Omit<EmployeeFormValues, "profilePhoto"> & {
+  profilePhoto?: FileList | null;
+};
 
 export interface EmployeeStats {
   total: number;

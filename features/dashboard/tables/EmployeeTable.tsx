@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Edit2, MoreVertical, Trash2 } from "lucide-react";
+import { Edit2, MoreVertical, RotateCcw, UserX } from "lucide-react";
 import { EmptyState } from "@/features/dashboard/components/EmptyState";
 import { DEFAULT_EMPLOYEE_AVATAR } from "@/features/dashboard/constants/employee-options";
 import type { Employee } from "@/features/dashboard/types/employee";
@@ -15,13 +15,42 @@ import {
 interface EmployeeTableProps {
   employees: Employee[];
   isLoading?: boolean;
+  onDeactivate: (employee: Employee) => void;
+  onEdit: (employee: Employee) => void;
+  onReactivate: (employee: Employee) => void;
 }
 
-export function EmployeeTable({ employees, isLoading = false }: EmployeeTableProps) {
+function EmployeeTableSkeleton() {
+  return (
+    <div className="overflow-hidden rounded-lg border border-[#eef0f3] bg-white shadow-card">
+      {Array.from({ length: 6 }).map((_, index) => (
+        <div
+          key={index}
+          className="grid grid-cols-[2fr_1fr_1fr_1fr] gap-4 border-b border-gray-100 p-5"
+        >
+          {Array.from({ length: 4 }).map((__, itemIndex) => (
+            <div
+              key={itemIndex}
+              className="h-4 animate-pulse rounded bg-gray-100"
+            />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function EmployeeTable({
+  employees,
+  isLoading = false,
+  onDeactivate,
+  onEdit,
+  onReactivate,
+}: EmployeeTableProps) {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
 
   if (isLoading) {
-    return <EmptyState title="Loading employees..." />;
+    return <EmployeeTableSkeleton />;
   }
 
   if (employees.length === 0) {
@@ -84,7 +113,9 @@ export function EmployeeTable({ employees, isLoading = false }: EmployeeTablePro
                   {employee.serviceSpecialties.map((specialty) => (
                     <span
                       key={specialty}
-                      className="inline-block rounded px-2 py-1 text-xs font-medium "
+                      className={`inline-block rounded px-2 py-1 text-xs font-medium ${getSpecialtyClasses(
+                        specialty,
+                      )}`}
                     >
                       {specialty}
                     </span>
@@ -125,18 +156,40 @@ export function EmployeeTable({ employees, isLoading = false }: EmployeeTablePro
                   <div className="absolute right-6 z-10 mt-2 w-48 rounded-md border border-gray-200 bg-white shadow-lg">
                     <button
                       type="button"
+                      onClick={() => {
+                        setOpenMenu(null);
+                        onEdit(employee);
+                      }}
                       className="flex w-full items-center gap-2 border-b border-gray-200 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                     >
                       <Edit2 size={16} />
                       Edit Employee
                     </button>
-                    <button
-                      type="button"
-                      className="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                    >
-                      <Trash2 size={16} />
-                      Delete Employee
-                    </button>
+                    {employee.status === "SUSPENDED" || !employee.isActive ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOpenMenu(null);
+                          onReactivate(employee);
+                        }}
+                        className="flex w-full items-center gap-2 px-4 py-2 text-sm text-green-700 hover:bg-green-50"
+                      >
+                        <RotateCcw size={16} />
+                        Reactivate Employee
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOpenMenu(null);
+                          onDeactivate(employee);
+                        }}
+                        className="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                      >
+                        <UserX size={16} />
+                        Deactivate Employee
+                      </button>
+                    )}
                   </div>
                 ) : null}
               </td>

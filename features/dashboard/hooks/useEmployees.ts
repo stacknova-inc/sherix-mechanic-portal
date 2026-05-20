@@ -1,16 +1,30 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import {
+  type QueryKey,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { getApiErrorMessage } from "@/services/api-error";
 import {
   createEmployee,
+  deactivateEmployee,
   getEmployees,
   getEmployeeStats,
+  reactivateEmployee,
+  updateEmployee,
 } from "@/features/dashboard/services/employee-service";
 import type {
   CreateEmployeeInput,
   Employee,
   EmployeeFilters,
+  EmployeeListParams,
   EmployeeStats,
+  PaginatedEmployees,
+  UpdateEmployeeInput,
 } from "@/features/dashboard/types/employee";
 import { filterAndSortEmployees } from "@/features/dashboard/utils/employee-formatters";
 
@@ -28,77 +42,180 @@ const defaultFilters: EmployeeFilters = {
   sortBy: "mostActive",
 };
 
+export const employeesQueryKey = (params: EmployeeListParams) =>
+  ["employees", params] as const;
+
+function updateEmployeeInCache(
+  currentData: PaginatedEmployees | undefined,
+  updatedEmployee: Employee,
+): PaginatedEmployees | undefined {
+  if (!currentData) {
+    return currentData;
+  }
+
+  return {
+    ...currentData,
+    employees: currentData.employees.map((employee) =>
+      employee.id === updatedEmployee.id ? updatedEmployee : employee,
+    ),
+  };
+}
+
 export function useEmployees() {
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [stats, setStats] = useState<EmployeeStats>(defaultStats);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [filters, setFilters] = useState<EmployeeFilters>(defaultFilters);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [page, setPage] = useState(1);
+  const limit = 10;
 
-  const loadEmployees = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const [employeeData, employeeStats] = await Promise.all([
-        getEmployees(),
-        getEmployeeStats(),
-      ]);
+  const queryParams = useMemo<EmployeeListParams>(
+    () => ({
+      page,
+      limit,
+      search: filters.searchTerm,
+      status: filters.status,
+      serviceId: filters.serviceType,
+    }),
+    [filters.searchTerm, filters.serviceType, filters.status, page],
+  );
 
-      setEmployees(employeeData);
-      setStats(employeeStats);
-    } catch (error) {
-      console.error("Error loading employees:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const employeesQuery = useQuery({
+    queryKey: employeesQueryKey(queryParams),
+    queryFn: () => getEmployees(queryParams),
+  });
 
-  useEffect(() => {
-    void loadEmployees();
-  }, [loadEmployees]);
-
-  const addEmployee = useCallback(async (employeeData: CreateEmployeeInput) => {
-    try {
-      setIsSubmitting(true);
-      const newEmployee = await createEmployee(employeeData);
-
-      setEmployees((currentEmployees) => [...currentEmployees, newEmployee]);
-      setStats((currentStats) => ({
-        ...currentStats,
-        total: currentStats.total + 1,
-        available:
-          employeeData.status === "AVAILABLE"
-            ? currentStats.available + 1
-            : currentStats.available,
-        onJob:
-          employeeData.status === "ON_JOB"
-            ? currentStats.onJob + 1
-            : currentStats.onJob,
-        offline:
-          employeeData.status === "OFFLINE"
-            ? currentStats.offline + 1
-            : currentStats.offline,
-      }));
-    } catch (error) {
-      console.error("Error adding employee:", error);
-      throw error;
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, []);
-
+  const paginatedEmployees = employeesQuery.data;
+  const employees = paginatedEmployees?.employees ?? [];
   const filteredEmployees = useMemo(
     () => filterAndSortEmployees(employees, filters),
     [employees, filters],
   );
 
+  const stats = useMemo(
+    () => (employees.length ? getEmployeeStats(employees) : defaultStats),
+    [employees],
+  );
+
+  const createMutation = useMutation({
+    mutationFn: (input: CreateEmployeeInput) => createEmployee(input),
+    onSuccess: () => {
+      toast({ type: "success", message: "Employee created successfully." });
+      void queryClient.invalidateQueries({ queryKey: ["employees"] });
+    },
+    onError: (error: unknown) => {
+      toast({ type: "error", message: getApiErrorMessage(error) });
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({
+      employeeId,
+      input,
+    }: {
+      employeeId: string;
+      input: UpdateEmployeeInput;
+    }) => updateEmployee(employeeId, input),
+    onSuccess: (updatedEmployee: Employee) => {
+      toast({ type: "success", message: "Employee updated successfully." });
+      queryClient.setQueriesData<PaginatedEmployees>(
+        { queryKey: ["employees"] },
+        (currentData: PaginatedEmployees | undefined) =>
+          updateEmployeeInCache(currentData, updatedEmployee),
+      );
+      void queryClient.invalidateQueries({ queryKey: ["employees"] });
+    },
+    onError: (error: unknown) => {
+      toast({ type: "error", message: getApiErrorMessage(error) });
+    },
+  });
+
+  const deactivateMutation = useMutation({
+    mutationFn: deactivateEmployee,
+    onMutate: async (employeeId: string) => {
+      await queryClient.cancelQueries({ queryKey: ["employees"] });
+      const previousData = queryClient.getQueriesData<PaginatedEmployees>({
+        queryKey: ["employees"],
+      });
+
+      queryClient.setQueriesData<PaginatedEmployees>(
+        { queryKey: ["employees"] },
+        (currentData: PaginatedEmployees | undefined) => {
+          if (!currentData) {
+            return currentData;
+          }
+
+          return {
+            ...currentData,
+            employees: currentData.employees.map((employee: Employee) =>
+              employee.id === employeeId
+                ? { ...employee, isActive: false, status: "SUSPENDED" }
+                : employee,
+            ),
+          };
+        },
+      );
+
+      return { previousData };
+    },
+    onError: (
+      error: unknown,
+      _employeeId: string,
+      context:
+        | { previousData: Array<[QueryKey, PaginatedEmployees | undefined]> }
+        | undefined,
+    ) => {
+      context?.previousData.forEach(([queryKey, data]) => {
+        queryClient.setQueryData(queryKey, data);
+      });
+      toast({ type: "error", message: getApiErrorMessage(error) });
+    },
+    onSuccess: () => {
+      toast({ type: "success", message: "Employee deactivated." });
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ["employees"] });
+    },
+  });
+
+  const reactivateMutation = useMutation({
+    mutationFn: reactivateEmployee,
+    onSuccess: (updatedEmployee: Employee) => {
+      toast({ type: "success", message: "Employee reactivated." });
+      queryClient.setQueriesData<PaginatedEmployees>(
+        { queryKey: ["employees"] },
+        (currentData: PaginatedEmployees | undefined) =>
+          updateEmployeeInCache(currentData, updatedEmployee),
+      );
+      void queryClient.invalidateQueries({ queryKey: ["employees"] });
+    },
+    onError: (error: unknown) => {
+      toast({ type: "error", message: getApiErrorMessage(error) });
+    },
+  });
+
   return {
     employees,
     filteredEmployees,
     filters,
-    isLoading,
-    isSubmitting,
+    isError: employeesQuery.isError,
+    error: employeesQuery.error,
+    isLoading: employeesQuery.isLoading,
+    isFetching: employeesQuery.isFetching,
+    isSubmitting:
+      createMutation.isPending ||
+      updateMutation.isPending ||
+      deactivateMutation.isPending ||
+      reactivateMutation.isPending,
     stats,
-    addEmployee,
+    page: paginatedEmployees?.page ?? page,
+    totalPages: paginatedEmployees?.totalPages ?? 1,
+    totalEmployees: paginatedEmployees?.total ?? employees.length,
+    addEmployee: createMutation.mutateAsync,
+    updateEmployee: updateMutation.mutateAsync,
+    deactivateEmployee: deactivateMutation.mutateAsync,
+    reactivateEmployee: reactivateMutation.mutateAsync,
     setFilters,
+    setPage,
+    refetchEmployees: employeesQuery.refetch,
   };
 }
