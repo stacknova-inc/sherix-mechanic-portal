@@ -4,7 +4,7 @@ import { Building2, CheckCircle2, FileText, Info, UserRound } from "lucide-react
 import { getServiceNames } from "./service-utils";
 import { useToast } from "@/hooks/use-toast";
 import { submitSignup } from "@/services/auth-service";
-import { useAuthStore } from "@/store/auth-store";
+import { isCompanyAdmin, useAuthStore } from "@/store/auth-store";
 
 function displayFile(file: File | null | undefined, fallback: string) {
   return file?.name ?? fallback;
@@ -56,6 +56,7 @@ export function ReviewStep() {
     loading,
     setLoading,
     setUser,
+    logout,
     setError,
     setSuccess,
   } = useAuthStore();
@@ -67,6 +68,10 @@ export function ReviewStep() {
       setError(null);
       const { formData: latestFormData, files: latestFiles } = useAuthStore.getState();
       const response = await submitSignup(latestFormData, latestFiles);
+      if (!isCompanyAdmin(response.user)) {
+        logout();
+        throw new Error("Only company admin accounts can access this dashboard.");
+      }
       setUser(response.user, response.token);
       setSuccess(response.message ?? "Account created successfully.");
       toast({ type: "success", message: response.message ?? "Account created successfully." });

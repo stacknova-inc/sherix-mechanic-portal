@@ -81,9 +81,9 @@ function ProfileSection({
 export function SettingsProfilePage() {
   const { formData, files, user } = useAuthStore();
 
-  const fullName = valueOrFallback(formData.fullName || user?.name, "Graca Yakey");
+  const fullName = valueOrFallback(user?.name, "Sherix Admin");
   const personalEmail = valueOrFallback(
-    formData.personalEmail || user?.email,
+    user?.email,
     "admin@sherix.com",
   );
   const servicesOffered = normalizeServiceIds(formData.servicesOffered).length
@@ -142,7 +142,7 @@ export function SettingsProfilePage() {
                 <div>
                   <p className="text-[18px] font-extrabold text-brand-dark dark:text-white">{fullName}</p>
                   <p className="mt-1 text-[12px] font-extrabold text-[#6f7784]">
-                    {user?.role ?? "Provider Admin"}
+                    {user?.role ?? "company_admin"}
                   </p>
                   <p className="mt-1 text-[12px] font-medium text-[#8f96a3]">
                     Sherix Admin Workspace

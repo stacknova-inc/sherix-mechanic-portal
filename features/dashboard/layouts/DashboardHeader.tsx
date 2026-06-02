@@ -15,12 +15,12 @@ import { useAuthStore } from "@/store/auth-store";
 
 export function DashboardHeader() {
   const router = useRouter();
-  const { formData, setUser, user } = useAuthStore();
+  const { logout, user } = useAuthStore();
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
 
-  const displayName = formData.fullName || user?.name || "Graca Yakey";
-  const displayRole = user?.role || "Operations Lead";
+  const displayName = user?.name || "Sherix Admin";
+  const displayRole = user?.role || "company_admin";
   const initials = displayName
     .split(" ")
     .filter(Boolean)
@@ -56,8 +56,8 @@ export function DashboardHeader() {
 
   function handleLogout() {
     setProfileMenuOpen(false);
-    setUser(null, null);
-    router.push("/sign-in");
+    logout();
+    router.replace("/sign-in");
   }
 
   return (
@@ -107,12 +107,9 @@ export function DashboardHeader() {
             </span>
           </span>
           <span className="flex size-9 items-center justify-center rounded-full bg-[linear-gradient(135deg,#e4072f,#f8c3cd)] text-[12px] font-extrabold text-white shadow-[0_10px_18px_rgba(228,7,47,0.18)]">
-            {initials || "GY"}
+            {initials || "SA"}
           </span>
-         
         </button>
-      </div>
-
 
         {profileMenuOpen ? (
           <div
@@ -146,6 +143,7 @@ export function DashboardHeader() {
             </button>
           </div>
         ) : null}
+      </div>
       </div>
     </header>
   );

@@ -8,6 +8,17 @@ import type {
   SignupFormData,
   SignupStep,
 } from "@/types/auth";
+import { clearPersistedAuthToken } from "@/services/auth-service";
+
+export const COMPANY_ADMIN_ROLE = "company_admin";
+
+export function normalizeRole(role: string | null | undefined) {
+  return role?.trim().toLowerCase().replaceAll("-", "_").replaceAll(" ", "_") ?? "";
+}
+
+export function isCompanyAdmin(user: Pick<AuthUser, "role"> | null | undefined) {
+  return normalizeRole(user?.role) === COMPANY_ADMIN_ROLE;
+}
 
 const SIGNUP_FORM_DATA_KEYS = [
   "companyName",
@@ -42,6 +53,7 @@ type AuthStore = {
   files: SignupFiles;
   currentStep: SignupStep;
   loading: boolean;
+  hasHydrated: boolean;
   user: AuthUser | null;
   token: string | null;
   selectedServiceId: string | null;
@@ -55,7 +67,9 @@ type AuthStore = {
   setCurrentStep: (step: SignupStep) => void;
   resetForm: () => void;
   setLoading: (loading: boolean) => void;
+  setHasHydrated: (hasHydrated: boolean) => void;
   setUser: (user: AuthUser | null, token?: string | null) => void;
+  logout: () => void;
   setSelectedServiceId: (serviceId: string | null) => void;
   toggleSidebarCollapsed: () => void;
   setError: (error: string | null) => void;
@@ -79,6 +93,7 @@ export const useAuthStore = create<AuthStore>()(
       files: {},
       currentStep: 1,
       loading: false,
+      hasHydrated: false,
       user: null,
       token: null,
       selectedServiceId: null,
@@ -109,7 +124,18 @@ export const useAuthStore = create<AuthStore>()(
           success: null,
         }),
       setLoading: (loading) => set({ loading }),
+      setHasHydrated: (hasHydrated) => set({ hasHydrated }),
       setUser: (user, token = null) => set({ user, token }),
+      logout: () => {
+        clearPersistedAuthToken();
+        set({
+          user: null,
+          token: null,
+          selectedServiceId: null,
+          error: null,
+          success: null,
+        });
+      },
       setSelectedServiceId: (serviceId) => set({ selectedServiceId: serviceId }),
       toggleSidebarCollapsed: () =>
         set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
@@ -118,6 +144,9 @@ export const useAuthStore = create<AuthStore>()(
     }),
     {
       name: "sherix-auth-store",
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
       merge: (persistedState, currentState) => {
         const persisted =
           typeof persistedState === "object" && persistedState !== null

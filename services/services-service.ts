@@ -12,13 +12,15 @@ type BackendService = {
   title?: string;
   serviceName?: string;
   description?: string | null;
+  service?: BackendService;
 };
 
 type BackendServicesResponse =
   | BackendService[]
   | {
-      data?: BackendService[] | { services?: BackendService[] };
+      data?: BackendService[] | { services?: BackendService[]; companyServices?: BackendService[] };
       services?: BackendService[];
+      companyServices?: BackendService[];
       results?: BackendService[];
     };
 
@@ -34,8 +36,9 @@ export async function getPublicServices(): Promise<PublicService[]> {
 }
 
 function normalizeServiceOption(service: BackendService): ServiceOption | null {
-  const id = service._id ?? service.id;
-  const name = service.name ?? service.title ?? service.serviceName;
+  const subscribedService = service.service ?? service;
+  const id = subscribedService._id ?? subscribedService.id;
+  const name = subscribedService.name ?? subscribedService.title ?? subscribedService.serviceName;
 
   if (!id || !name) {
     return null;
@@ -44,7 +47,7 @@ function normalizeServiceOption(service: BackendService): ServiceOption | null {
   return {
     id,
     name,
-    description: service.description ?? null,
+    description: subscribedService.description ?? service.description ?? null,
   };
 }
 
@@ -53,7 +56,12 @@ function normalizeServicesResponse(response: BackendServicesResponse): ServiceOp
     ? response
     : Array.isArray(response.data)
       ? response.data
-      : response.data?.services ?? response.services ?? response.results ?? [];
+      : response.data?.companyServices ??
+        response.data?.services ??
+        response.companyServices ??
+        response.services ??
+        response.results ??
+        [];
 
   return rawServices
     .map(normalizeServiceOption)
@@ -61,10 +69,10 @@ function normalizeServicesResponse(response: BackendServicesResponse): ServiceOp
 }
 
 export async function getServices(): Promise<ServiceOption[]> {
-  console.info("[Services] Dashboard services request started");
-  const response = await apiClient.get<BackendServicesResponse>("/services/active-services");
+  console.info("[Services] Company subscribed services request started");
+  const response = await apiClient.get<BackendServicesResponse>("/services/company-services");
   const services = normalizeServicesResponse(response.data);
-  console.info("[Services] Dashboard services loaded successfully", {
+  console.info("[Services] Company subscribed services loaded successfully", {
     count: services.length,
     emptyDataset: services.length === 0,
   });

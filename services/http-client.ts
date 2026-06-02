@@ -121,6 +121,11 @@ apiClient.interceptors.request.use((config) => {
     config.headers.set("Authorization", `Bearer ${token}`);
   }
 
+  if (config.data instanceof FormData) {
+    config.headers.delete("Content-Type");
+    config.headers.delete("content-type");
+  }
+
   console.info("[API] Request started", {
     url: getRequestUrl(config.baseURL, config.url),
     method: config.method?.toUpperCase(),

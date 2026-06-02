@@ -240,6 +240,13 @@ export function EmployeeForm({
             className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:bg-gray-100 dark:border-white/10 dark:bg-white/5 dark:text-white dark:disabled:bg-white/10"
             {...register("dateOfBirth", {
               required: "Date of birth is required.",
+              validate: (dateOfBirth) => {
+                const selectedDate = new Date(dateOfBirth);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+
+                return selectedDate <= today || "Date of birth cannot be in the future.";
+              },
             })}
           />
           {errors.dateOfBirth ? (

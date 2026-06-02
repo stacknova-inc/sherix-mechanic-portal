@@ -1,3 +1,5 @@
+"use client";
+
 import { CalendarDays } from "lucide-react";
 import { ActiveRequestsTable } from "@/features/dashboard/components/ActiveRequestsTable";
 import { PageHeader } from "@/features/dashboard/components/PageHeader";
@@ -7,12 +9,16 @@ import { StatCard } from "@/features/dashboard/components/StatCard";
 import { DashboardShell } from "@/features/dashboard/layouts/DashboardShell";
 import { overviewStats } from "@/features/dashboard/mocks/dashboard-mock-data";
 import { EmployeesOnJobList } from "../components/EmployeesOnJobList";
+import { useAuthStore } from "@/store/auth-store";
 
 export function DashboardOverviewPage() {
+  const user = useAuthStore((state) => state.user);
+  const firstName = user?.name?.trim().split(/\s+/)[0] || "Admin";
+
   return (
     <DashboardShell>
       <PageHeader
-        title="Good morning, Grace."
+        title={`Good morning, ${firstName}.`}
         description="Here's how the fleet is running today."
         actions={
           <>

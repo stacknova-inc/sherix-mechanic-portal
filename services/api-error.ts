@@ -4,7 +4,7 @@ type BackendErrorPayload = {
   message?: string;
   detail?: string;
   error?: string;
-  errors?: Record<string, string[] | string>;
+  errors?: Array<Record<string, unknown> | string> | Record<string, string[] | string>;
 };
 
 export type ApiFailureReason =
@@ -33,9 +33,25 @@ export type ApiErrorDetails = {
 };
 
 function getBackendMessage(payload: BackendErrorPayload | undefined): string | undefined {
-  const fieldErrors = payload?.errors
-    ? Object.values(payload.errors).flat().filter(Boolean)
-    : [];
+  const fieldErrors = Array.isArray(payload?.errors)
+    ? payload.errors
+        .map((error) => {
+          if (typeof error === "string") {
+            return error;
+          }
+
+          return (
+            error.message ??
+            error.msg ??
+            error.error ??
+            error.detail ??
+            undefined
+          );
+        })
+        .filter(Boolean)
+    : payload?.errors
+      ? Object.values(payload.errors).flat().filter(Boolean)
+      : [];
 
   return (
     payload?.message ??

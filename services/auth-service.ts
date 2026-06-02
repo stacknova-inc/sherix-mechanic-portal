@@ -23,10 +23,18 @@ type BackendAuthResponse = {
     access_token?: string;
     accessToken?: string;
     user?: Partial<AuthUser>;
+    userData?: Partial<AuthUser>;
   };
   message?: string;
   detail?: string;
   error?: string;
+};
+
+type BackendMessageResponse = {
+  message?: string;
+  detail?: string;
+  error?: string;
+  data?: unknown;
 };
 
 type BackendUser = Partial<AuthUser> & {
@@ -192,7 +200,7 @@ function normalizeUser(
   response: BackendAuthResponse,
   fallback: Pick<AuthUser, "name" | "email">,
 ): AuthUser {
-  const backendUser = (response.user ?? response.data?.user) as
+  const backendUser = (response.user ?? response.data?.user ?? response.data?.userData) as
     | BackendUser
     | undefined;
 
@@ -200,7 +208,7 @@ function normalizeUser(
     id: backendUser?.id,
     name: backendUser?.name ?? backendUser?.fullName ?? fallback.name,
     email: backendUser?.email ?? backendUser?.personalEmail ?? fallback.email,
-    role: backendUser?.role ?? "Provider Admin",
+    role: backendUser?.role,
   };
 }
 
@@ -270,6 +278,44 @@ export async function submitSignup(
     console.error("[Auth][Signup][Error] Signup failed", getApiErrorDetails(error, "Unable to create account."));
     throw error;
   }
+}
+
+export async function verifySignupEmail(token: string): Promise<BackendMessageResponse> {
+  console.info("[Auth][VerifyEmail] Verifying signup email token", {
+    hasToken: Boolean(token),
+  });
+
+  const response = await apiClient.post<BackendMessageResponse>(
+    "company-onboarding/verify-email",
+    { token },
+  );
+
+  console.info("[Auth][VerifyEmail] Verification response received", {
+    status: response.status,
+    message: response.data.message ?? response.data.detail,
+  });
+
+  return response.data;
+}
+
+export async function resendSignupVerification(
+  businessEmail: string,
+): Promise<BackendMessageResponse> {
+  console.info("[Auth][VerifyEmail] Resending signup verification email", {
+    businessEmail: businessEmail.trim(),
+  });
+
+  const response = await apiClient.post<BackendMessageResponse>(
+    "company-onboarding/resend-verification",
+    { business_email: businessEmail.trim() },
+  );
+
+  console.info("[Auth][VerifyEmail] Resend response received", {
+    status: response.status,
+    message: response.data.message ?? response.data.detail,
+  });
+
+  return response.data;
 }
 
 export async function signIn(
