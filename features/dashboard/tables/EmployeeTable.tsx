@@ -22,16 +22,16 @@ interface EmployeeTableProps {
 
 function EmployeeTableSkeleton() {
   return (
-    <div className="overflow-hidden rounded-lg border border-[#eef0f3] bg-white shadow-card">
+    <div className="overflow-hidden rounded-lg border border-[#eef0f3] bg-white shadow-card dark:border-white/10 dark:bg-[#1b1d22]">
       {Array.from({ length: 6 }).map((_, index) => (
         <div
           key={index}
-          className="grid grid-cols-[2fr_1fr_1fr_1fr] gap-4 border-b border-gray-100 p-5"
+          className="grid grid-cols-[2fr_1fr_1fr_1fr] gap-4 border-b border-gray-100 p-5 dark:border-white/10"
         >
           {Array.from({ length: 4 }).map((__, itemIndex) => (
             <div
               key={itemIndex}
-              className="h-4 animate-pulse rounded bg-gray-100"
+              className="h-4 animate-pulse rounded bg-gray-100 dark:bg-white/10"
             />
           ))}
         </div>
@@ -63,15 +63,15 @@ export function EmployeeTable({
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-[#eef0f3] bg-white shadow-card">
+    <div className="overflow-x-auto rounded-lg border border-[#eef0f3] bg-white shadow-card dark:border-white/10 dark:bg-[#1b1d22]">
       <table className="w-full min-w-[920px]">
         <thead>
-          <tr className="border-b border-gray-200 bg-gray-50">
+          <tr className="border-b border-gray-200 bg-gray-50 dark:border-white/10 dark:bg-white/[0.03]">
             {["Name", "Contact", "Email", "Specialization", "Status", "Jobs", "Actions"].map(
               (heading) => (
                 <th
                   key={heading}
-                  className="px-6 py-3 text-left text-sm font-semibold text-gray-900"
+                  className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white"
                 >
                   {heading}
                 </th>
@@ -79,9 +79,9 @@ export function EmployeeTable({
             )}
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-200">
+        <tbody className="divide-y divide-gray-200 dark:divide-white/10">
           {employees.map((employee) => (
-            <tr key={employee.id} className="hover:bg-gray-50">
+            <tr key={employee.id} className="hover:bg-gray-50 dark:hover:bg-white/[0.03]">
               <td className="px-6 py-4">
                 <div className="flex items-center gap-3">
                   <img
@@ -90,10 +90,10 @@ export function EmployeeTable({
                     className="size-10 rounded-full object-cover"
                   />
                   <div>
-                    <p className="text-sm font-medium text-gray-900">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">
                       {employee.fullName}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-gray-500 dark:text-white/45">
                       Born {formatDate(employee.dateOfBirth)}
                     </p>
                   </div>
@@ -101,11 +101,11 @@ export function EmployeeTable({
               </td>
 
               <td className="px-6 py-4">
-                <p className="text-sm text-gray-900">{employee.phoneNumber}</p>
+                <p className="text-sm text-gray-900 dark:text-white/75">{employee.phoneNumber}</p>
               </td>
 
               <td className="px-6 py-4">
-                <p className="text-sm text-gray-900">{employee.email || "-"}</p>
+                <p className="text-sm text-gray-900 dark:text-white/75">{employee.email || "-"}</p>
               </td>
 
               <td className="px-6 py-4">
@@ -134,7 +134,7 @@ export function EmployeeTable({
               </td>
 
               <td className="px-6 py-4">
-                <p className="text-sm font-medium text-gray-900">
+                <p className="text-sm font-medium text-gray-900 dark:text-white">
                   {employee.jobsCompleted}
                 </p>
               </td>
@@ -147,20 +147,20 @@ export function EmployeeTable({
                       currentMenu === employee.id ? null : employee.id,
                     )
                   }
-                  className="rounded p-1 hover:bg-gray-100"
+                  className="rounded p-1 hover:bg-gray-100 dark:hover:bg-white/10"
                 >
                   <MoreVertical size={18} className="text-gray-600" />
                 </button>
 
                 {openMenu === employee.id ? (
-                  <div className="absolute right-6 z-10 mt-2 w-48 rounded-md border border-gray-200 bg-white shadow-lg">
+                  <div className="absolute right-6 z-10 mt-2 w-48 rounded-md border border-gray-200 bg-white shadow-lg dark:border-white/10 dark:bg-[#202329]">
                     <button
                       type="button"
                       onClick={() => {
                         setOpenMenu(null);
                         onEdit(employee);
                       }}
-                      className="flex w-full items-center gap-2 border-b border-gray-200 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                      className="flex w-full items-center gap-2 border-b border-gray-200 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:border-white/10 dark:text-white/70 dark:hover:bg-white/10"
                     >
                       <Edit2 size={16} />
                       Edit Employee

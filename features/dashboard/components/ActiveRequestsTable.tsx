@@ -7,18 +7,18 @@ export function ActiveRequestsTable() {
   return (
     <section>
       <div className="mb-6 flex flex-wrap items-center gap-4">
-        <h3 className="mr-auto text-2xl font-extrabold">Active Requests</h3>
+        <h3 className="mr-auto text-2xl font-extrabold dark:text-white">Active Requests</h3>
         
         <Link
           href="/requests"
-          className="flex h-9 items-center rounded-lg border border-[#eef0f3] px-5 text-xs font-extrabold text-[#6f7784] transition hover:border-brand-red hover:text-brand-red"
+          className="flex h-9 items-center rounded-lg border border-[#eef0f3] px-5 text-xs font-extrabold text-[#6f7784] transition hover:border-brand-red hover:text-brand-red dark:border-white/10 dark:text-white/60"
         >
           View All
         </Link>
         
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-[#eef0f3] bg-white shadow-card">
+      <div className="overflow-hidden rounded-lg border border-[#eef0f3] bg-white shadow-card dark:border-white/10 dark:bg-[#1b1d22]">
         <table className="w-full min-w-[700px] border-collapse text-left text-sm">
           <thead>
             <tr className="text-[11px] font-extrabold uppercase text-[#8a929e]">
@@ -33,9 +33,9 @@ export function ActiveRequestsTable() {
           </thead>
           <tbody>
             {activeJobs.map((request) => (
-              <tr key={request.id} className="border-t border-[#f3f5f7]">
+              <tr key={request.id} className="border-t border-[#f3f5f7] dark:border-white/10">
                 <td className="px-5 py-4">
-                  <p className="font-extrabold">{request.employeeName}</p>
+                  <p className="font-extrabold dark:text-white">{request.employeeName}</p>
                   <p className="text-xs text-[#8f96a3]">{request.vehicle}</p>
                 </td>
                 <td className="px-5 py-4">
@@ -49,7 +49,7 @@ export function ActiveRequestsTable() {
                   </div>
                 </td>
                 <td className="px-5 py-4">
-                  <p>{request.time}</p>
+                  <p className="dark:text-white/70">{request.time}</p>
                  
                 </td>
                 <td className="px-5 py-4">

@@ -71,7 +71,7 @@ export function UploadField({
         {label} {required ? <span className="text-brand-red">*</span> : null}
         {optional ? <span className="ml-1 text-[10px] font-medium text-[#a5abb4]">(Optional)</span> : null}
       </span>
-      <span className={cn("relative flex h-[40px] cursor-pointer items-center rounded-[8px] border border-[#dfe3e9] bg-white px-3 text-[12px] font-medium text-[#9ba3ae]", error && "border-brand-red")}>
+      <span className={cn("relative flex h-[40px] cursor-pointer items-center rounded-[8px] border border-[#dfe3e9] bg-white px-3 text-[12px] font-medium text-[#9ba3ae] transition dark:border-white/10 dark:bg-[#202329] dark:text-white/50", error && "border-brand-red")}>
         <span className="truncate pr-8">{file?.name ?? placeholder}</span>
         <Icon className="absolute right-3.5 size-[14px] text-[#9ba3ae]" />
         <input
@@ -80,7 +80,7 @@ export function UploadField({
           onChange={(event) => onChange(event.target.files?.[0] ?? null)}
         />
       </span>
-      {file ? <span className="mt-1 block text-[10px] font-semibold text-[#687181]">Ready to upload</span> : null}
+      {file ? <span className="mt-1 block text-[10px] font-semibold text-[#687181] dark:text-white/55">Ready to upload</span> : null}
       {error ? <span className="auth-error">{error.message}</span> : null}
     </label>
   );
@@ -138,7 +138,7 @@ export function TextAreaField({ label, placeholder, required, registration, erro
       </span>
       <textarea
         className={cn(
-          "min-h-[72px] w-full resize-none rounded-[8px] border border-[#dfe3e9] bg-white px-3 py-2.5 text-[12px] font-medium text-brand-dark outline-none transition placeholder:text-[#9ba3ae] focus:border-brand-red focus:ring-4 focus:ring-red-50",
+          "min-h-[72px] w-full resize-none rounded-[8px] border border-[#dfe3e9] bg-white px-3 py-2.5 text-[12px] font-medium text-brand-dark outline-none transition placeholder:text-[#9ba3ae] focus:border-brand-red focus:ring-4 focus:ring-red-50 dark:border-white/10 dark:bg-[#202329] dark:text-white dark:placeholder:text-white/35 dark:focus:ring-red-950/30",
           error && "border-brand-red"
         )}
         placeholder={placeholder}

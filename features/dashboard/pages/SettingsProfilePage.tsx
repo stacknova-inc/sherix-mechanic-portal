@@ -31,7 +31,7 @@ function fileName(file: File | null | undefined, fallback: string) {
 
 function EditButton() {
   return (
-    <button className="flex h-9 items-center gap-2 rounded-lg border border-[#edf0f3] bg-white px-4 text-[12px] font-extrabold text-[#5f6672] transition hover:border-brand-red hover:text-brand-red">
+    <button className="flex h-9 items-center gap-2 rounded-lg border border-[#edf0f3] bg-white px-4 text-[12px] font-extrabold text-[#5f6672] transition hover:border-brand-red hover:text-brand-red dark:border-white/10 dark:bg-white/5 dark:text-white/70">
       Edit
       <UserRound className="size-3.5" />
     </button>
@@ -52,7 +52,7 @@ function DetailItem({
       <p className="mb-2 text-[10px] font-extrabold uppercase tracking-[0.1em] text-[#9aa1ad]">
         {label}
       </p>
-      <p className="flex min-h-5 items-center gap-2 text-[13px] font-extrabold leading-5 text-brand-dark">
+      <p className="flex min-h-5 items-center gap-2 text-[13px] font-extrabold leading-5 text-brand-dark dark:text-white">
         {icon ? <span className="text-brand-red">{icon}</span> : null}
         <span className="break-words">{value}</span>
       </p>
@@ -68,9 +68,9 @@ function ProfileSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-[8px] border border-[#edf0f3] bg-white p-5 shadow-card md:p-6">
+    <section className="rounded-[8px] border border-[#edf0f3] bg-white p-5 shadow-card dark:border-white/10 dark:bg-[#1b1d22] md:p-6">
       <div className="mb-6 flex items-center justify-between gap-4">
-        <h2 className="text-[15px] font-extrabold text-brand-dark">{title}</h2>
+        <h2 className="text-[15px] font-extrabold text-brand-dark dark:text-white">{title}</h2>
         <EditButton />
       </div>
       {children}
@@ -102,7 +102,7 @@ export function SettingsProfilePage() {
       />
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
-        <aside className="rounded-[8px] border border-[#edf0f3] bg-white p-3 shadow-card">
+        <aside className="rounded-[8px] border border-[#edf0f3] bg-white p-3 shadow-card dark:border-white/10 dark:bg-[#1b1d22]">
           <nav className="space-y-1">
             {settingsSections.map((section) => {
               const active = section === "My Profile";
@@ -114,7 +114,7 @@ export function SettingsProfilePage() {
                     "flex h-10 w-full items-center rounded-lg px-4 text-left text-[12px] font-extrabold transition",
                     active
                       ? "bg-[#ffe8ee] text-brand-red"
-                      : "text-[#737b88] hover:bg-[#f7f8fa] hover:text-brand-dark",
+                      : "text-[#737b88] hover:bg-[#f7f8fa] hover:text-brand-dark dark:text-white/55 dark:hover:bg-white/10 dark:hover:text-white",
                   )}
                 >
                   {section}
@@ -128,7 +128,7 @@ export function SettingsProfilePage() {
         </aside>
 
         <div className="space-y-5">
-          <section className="rounded-[8px] border border-[#edf0f3] bg-white p-5 shadow-card md:p-6">
+          <section className="rounded-[8px] border border-[#edf0f3] bg-white p-5 shadow-card dark:border-white/10 dark:bg-[#1b1d22] md:p-6">
             <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
               <div className="flex items-center gap-4">
                 <div className="flex size-[76px] shrink-0 items-center justify-center rounded-full bg-[linear-gradient(135deg,#e4072f,#f8c3cd)] text-[24px] font-extrabold text-white shadow-[0_14px_26px_rgba(228,7,47,0.18)]">
@@ -140,7 +140,7 @@ export function SettingsProfilePage() {
                     .toUpperCase()}
                 </div>
                 <div>
-                  <p className="text-[18px] font-extrabold text-brand-dark">{fullName}</p>
+                  <p className="text-[18px] font-extrabold text-brand-dark dark:text-white">{fullName}</p>
                   <p className="mt-1 text-[12px] font-extrabold text-[#6f7784]">
                     {user?.role ?? "Provider Admin"}
                   </p>

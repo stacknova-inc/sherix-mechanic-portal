@@ -75,7 +75,7 @@ export function EmployeeForm({
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="p-6">
       <div className="mb-6">
-        <label className="mb-3 block text-sm font-semibold uppercase text-gray-900">
+        <label className="mb-3 block text-sm font-semibold uppercase text-gray-900 dark:text-white">
           Profile Photo
         </label>
         <div className="flex items-center gap-4">
@@ -84,13 +84,13 @@ export function EmployeeForm({
             alt="Profile preview"
             className="size-16 rounded-full border-2 border-gray-200 object-cover"
           />
-          <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-md border-2 border-dashed border-gray-300 px-4 py-3 hover:border-gray-400 hover:bg-gray-50">
+          <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-md border-2 border-dashed border-gray-300 px-4 py-3 hover:border-gray-400 hover:bg-gray-50 dark:border-white/10 dark:hover:bg-white/10">
             <Upload size={18} className="text-gray-600" />
             <div>
-              <p className="text-sm font-medium text-gray-700">
+              <p className="text-sm font-medium text-gray-700 dark:text-white/75">
                 Click to upload photo
               </p>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-500 dark:text-white/45">
                 Square JPG or PNG, max 2MB.
               </p>
             </div>
@@ -102,8 +102,12 @@ export function EmployeeForm({
               {...register("profilePhoto", {
                 validate: (files) => {
                   const file = files?.[0];
-                  if (!file || employee) {
+                  if (employee && !file) {
                     return true;
+                  }
+
+                  if (!file) {
+                    return "Profile photo is required.";
                   }
 
                   return file.size <= 2 * 1024 * 1024 || "Photo must be 2MB or less.";
@@ -119,14 +123,14 @@ export function EmployeeForm({
 
       <div className="mb-4 grid gap-4 md:grid-cols-2">
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-white/70">
             Full Name <span className="text-red-600">*</span>
           </label>
           <input
             type="text"
             placeholder="e.g. Robert Smith"
             disabled={isSubmitting}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:bg-gray-100"
+            className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:bg-gray-100 dark:border-white/10 dark:bg-white/5 dark:text-white dark:disabled:bg-white/10"
             {...register("name", { required: "Full name is required." })}
           />
           {errors.name ? (
@@ -135,12 +139,12 @@ export function EmployeeForm({
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-white/70">
             Experience Level
           </label>
           <select
             disabled={isSubmitting}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:bg-gray-100"
+            className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:bg-gray-100 dark:border-white/10 dark:bg-white/5 dark:text-white dark:disabled:bg-white/10"
             {...register("levelOfExperience", {
               required: "Experience level is required.",
             })}
@@ -156,14 +160,14 @@ export function EmployeeForm({
 
       <div className="mb-4 grid gap-4 md:grid-cols-2">
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-white/70">
             Phone Number <span className="text-red-600">*</span>
           </label>
           <input
             type="tel"
             placeholder="(555) 000-0000"
             disabled={isSubmitting}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:bg-gray-100"
+            className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:bg-gray-100 dark:border-white/10 dark:bg-white/5 dark:text-white dark:disabled:bg-white/10"
             {...register("phoneNumber", {
               required: "Phone number is required.",
             })}
@@ -176,14 +180,14 @@ export function EmployeeForm({
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-white/70">
             Email Address <span className="text-red-600">*</span>
           </label>
           <input
             type="email"
             placeholder="r.smith@autofix.com"
             disabled={isSubmitting}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:bg-gray-100"
+            className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:bg-gray-100 dark:border-white/10 dark:bg-white/5 dark:text-white dark:disabled:bg-white/10"
             {...register("email", {
               required: "Email is required.",
               pattern: {
@@ -200,7 +204,7 @@ export function EmployeeForm({
 
       <div className="mb-6 grid gap-4 md:grid-cols-2">
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-white/70">
             Services <span className="text-red-600">*</span>
           </label>
           <Controller
@@ -227,13 +231,13 @@ export function EmployeeForm({
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-white/70">
             Date of Birth <span className="text-red-600">*</span>
           </label>
           <input
             type="date"
             disabled={isSubmitting}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:bg-gray-100"
+            className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:bg-gray-100 dark:border-white/10 dark:bg-white/5 dark:text-white dark:disabled:bg-white/10"
             {...register("dateOfBirth", {
               required: "Date of birth is required.",
             })}
@@ -246,12 +250,12 @@ export function EmployeeForm({
         </div>
       </div>
 
-      <div className="flex justify-end gap-3 border-t border-gray-200 pt-4">
+      <div className="flex justify-end gap-3 border-t border-gray-200 pt-4 dark:border-white/10">
         <button
           type="button"
           onClick={onCancel}
           disabled={isSubmitting}
-          className="rounded-md border border-gray-300 bg-white px-4 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          className="rounded-md border border-gray-300 bg-white px-4 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-white/10 dark:bg-transparent dark:text-white/70 dark:hover:bg-white/10"
         >
           Discard
         </button>

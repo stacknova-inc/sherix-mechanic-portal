@@ -9,6 +9,7 @@ import { cn } from "@/utils/cn";
 interface RequestsTableProps {
   requests: AdminRequest[];
   isLoading?: boolean;
+  errorMessage?: string;
   selectedIds: string[];
   sortKey: RequestSortKey;
   sortDirection: "asc" | "desc";
@@ -65,6 +66,7 @@ function LoadingSkeleton() {
 export function RequestsTable({
   requests,
   isLoading = false,
+  errorMessage,
   selectedIds,
   sortKey,
   sortDirection,
@@ -129,7 +131,19 @@ export function RequestsTable({
           </thead>
           <tbody>
             {isLoading ? <LoadingSkeleton /> : null}
-            {!isLoading && requests.length === 0 ? (
+            {!isLoading && errorMessage ? (
+              <tr>
+                <td colSpan={10} className="px-5 py-16 text-center">
+                  <p className="text-base font-extrabold text-brand-red">
+                    {errorMessage}
+                  </p>
+                  <p className="mt-1 text-sm text-[#8f96a3]">
+                    Check the console for the backend response details.
+                  </p>
+                </td>
+              </tr>
+            ) : null}
+            {!isLoading && !errorMessage && requests.length === 0 ? (
               <tr>
                 <td colSpan={10} className="px-5 py-16 text-center">
                   <p className="text-base font-extrabold text-brand-dark dark:text-white">
@@ -216,10 +230,12 @@ export function RequestsTable({
         {!isLoading && requests.length === 0 ? (
           <div className="rounded-xl border border-dashed border-[#dfe3e9] px-4 py-12 text-center dark:border-white/10">
             <p className="text-base font-extrabold text-brand-dark dark:text-white">
-              No requests found
+              {errorMessage ?? "No requests found"}
             </p>
             <p className="mt-1 text-sm text-[#8f96a3]">
-              Adjust your search or filters.
+              {errorMessage
+                ? "Check the console for the backend response details."
+                : "Adjust your search or filters."}
             </p>
           </div>
         ) : null}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { CheckCircle2, Clock3, FileCheck2, FileText } from "lucide-react";
 import { DashboardShell } from "@/features/dashboard/layouts/DashboardShell";
 import { RequestStatsCard } from "@/features/requests/components/RequestStatsCard";
@@ -10,7 +11,7 @@ import {
 } from "@/features/requests/components/RequestTabs";
 import { RequestsHeader } from "@/features/requests/components/RequestsHeader";
 import { RequestsTable } from "@/features/requests/components/RequestsTable";
-import { requestData, requestStats } from "@/features/requests/data";
+import { getAdminBookings } from "@/features/requests/services/bookings-service";
 import type { AdminRequest, RequestSortKey } from "@/features/requests/types";
 
 const statsIcons = [FileText, Clock3, CheckCircle2, FileCheck2];
@@ -30,6 +31,10 @@ function getSortValue(request: AdminRequest, key: RequestSortKey) {
 }
 
 export function RequestsManagementPage() {
+  const bookingsQuery = useQuery({
+    queryKey: ["admin-bookings"],
+    queryFn: getAdminBookings,
+  });
   const [searchValue, setSearchValue] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [activeTab, setActiveTab] = useState<RequestTab>("All");
@@ -37,7 +42,8 @@ export function RequestsManagementPage() {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [page, setPage] = useState(1);
-  const isLoading = false;
+  const requestData = bookingsQuery.data ?? [];
+  const isLoading = bookingsQuery.isLoading;
 
   const counts = useMemo(
     () => ({
@@ -54,7 +60,33 @@ export function RequestsManagementPage() {
       Completed: requestData.filter((request) => request.status === "Completed")
         .length,
     }),
-    [],
+    [requestData],
+  );
+
+  const requestStats = useMemo(
+    () => [
+      {
+        title: "Total Requests",
+        value: counts.All.toLocaleString(),
+        helper: "from backend bookings",
+      },
+      {
+        title: "Pending Requests",
+        value: counts.Pending.toLocaleString(),
+        helper: "awaiting action",
+      },
+      {
+        title: "Approved Requests",
+        value: counts.Approved.toLocaleString(),
+        helper: "accepted bookings",
+      },
+      {
+        title: "Completed Requests",
+        value: counts.Completed.toLocaleString(),
+        helper: "finished bookings",
+      },
+    ],
+    [counts],
   );
 
   const filteredRequests = useMemo(() => {
@@ -127,6 +159,10 @@ export function RequestsManagementPage() {
     setPage(1);
   }
 
+  const requestErrorMessage = bookingsQuery.isError
+    ? "Unable to load bookings from the backend."
+    : undefined;
+
   function handleFilterChange(value: string) {
     setTypeFilter(value);
     setPage(1);
@@ -184,6 +220,7 @@ export function RequestsManagementPage() {
         <RequestsTable
           requests={pagedRequests}
           isLoading={isLoading}
+          errorMessage={requestErrorMessage}
           selectedIds={selectedIds}
           sortKey={sortKey}
           sortDirection={sortDirection}

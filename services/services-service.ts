@@ -1,4 +1,3 @@
-import { DEVICE_ID, getApiUrl } from "@/services/api-config";
 import { apiClient } from "@/services/http-client";
 import {
   normalizePublicServices,
@@ -24,23 +23,13 @@ type BackendServicesResponse =
     };
 
 export async function getPublicServices(): Promise<PublicService[]> {
-  const response = await fetch(getApiUrl("/services?is_public=true"), {
-    method: "GET",
-    headers: {
-      "x-device-id": DEVICE_ID,
-    },
+  console.info("[Services] Services request started");
+  const response = await apiClient.get<unknown>("/services/active-services");
+  const services = normalizePublicServices(response.data);
+  console.info("[Services] Services loaded successfully", {
+    count: services.length,
+    emptyDataset: services.length === 0,
   });
-
-  if (!response.ok) {
-    throw new Error("Unable to load services.");
-  }
-
-  const services = normalizePublicServices(await response.json());
-
-  if (!services.length) {
-    throw new Error("No public services were returned.");
-  }
-
   return services;
 }
 
@@ -72,6 +61,12 @@ function normalizeServicesResponse(response: BackendServicesResponse): ServiceOp
 }
 
 export async function getServices(): Promise<ServiceOption[]> {
-  const response = await apiClient.get<BackendServicesResponse>("/services");
-  return normalizeServicesResponse(response.data);
+  console.info("[Services] Dashboard services request started");
+  const response = await apiClient.get<BackendServicesResponse>("/services/active-services");
+  const services = normalizeServicesResponse(response.data);
+  console.info("[Services] Dashboard services loaded successfully", {
+    count: services.length,
+    emptyDataset: services.length === 0,
+  });
+  return services;
 }

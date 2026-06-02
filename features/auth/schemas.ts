@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+const SERVICE_ID_PATTERN = /^[a-f0-9]{24}$/i;
+
 const requiredFile = (label: string) =>
   z.custom<File>(
     (file) => file instanceof File && file.size > 0,
@@ -13,7 +15,7 @@ export const companySchema = z.object({
   coverage_area: z.string().min(2, "coverage_area is required"),
   registrationCertificate: requiredFile("Registration certificate"),
   garageProof: requiredFile("Proof of garage/workshop address"),
-  businessInsurance: z.instanceof(File).nullable().optional(),
+  businessInsurance: requiredFile("Business insurance"),
 });
 
 export const adminSchema = z
@@ -25,9 +27,11 @@ export const adminSchema = z
       .min(8, "Use at least 8 characters"),
     confirmPassword: z.string(),
     ghanaCard: requiredFile("Ghana Card upload"),
-    servicesOffered: z.array(z.string()).min(1, "Select at least one service"),
+    servicesOffered: z
+      .array(z.string().regex(SERVICE_ID_PATTERN, "Select services from the list"))
+      .min(1, "Select at least one service"),
     workingHours: z.string().min(1, "Working hours is required"),
-    insuranceUpload: z.instanceof(File).nullable().optional(),
+    insuranceUpload: requiredFile("Admin insurance"),
     signedAgreementAccepted: z
       .boolean()
       .refine((value) => value, "You must read and accept the signed agreement"),

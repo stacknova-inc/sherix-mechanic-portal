@@ -50,9 +50,9 @@ export function DashboardPlaceholderPage({ page }: DashboardPlaceholderPageProps
           description="This frontend surface is intentionally prepared with layout, routing, and structure for backend integration."
         />
       </div>
-      <div className="mt-6 rounded-lg border border-[#eef0f3] bg-white p-6 shadow-card">
+      <div className="mt-6 rounded-lg border border-[#eef0f3] bg-white p-6 shadow-card dark:border-white/10 dark:bg-[#1b1d22]">
         <Icon className="size-8 text-brand-red" />
-        <p className="mt-4 text-sm font-medium text-[#6f7784]">
+        <p className="mt-4 text-sm font-medium text-[#6f7784] dark:text-white/55">
           Add data services, hooks, and page-specific components inside the dashboard
           feature without changing the shared layout.
         </p>

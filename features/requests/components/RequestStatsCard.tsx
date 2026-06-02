@@ -1,20 +1,12 @@
 import type { LucideIcon } from "lucide-react";
-import { cn } from "@/utils/cn";
 
 interface RequestStatsCardProps {
   title: string;
   value: string;
-  trend: string;
   helper: string;
   icon: LucideIcon;
 
 }
-
-const toneClasses = {
-  positive: "bg-[#eafff4] text-[#07a86d]",
-  warning: "bg-[#fff8df] text-[#b77900]",
-  danger: "bg-[#ffe8ed] text-brand-red",
-};
 
 export function RequestStatsCard({
   title,

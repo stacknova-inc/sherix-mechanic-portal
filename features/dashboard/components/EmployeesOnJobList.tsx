@@ -10,12 +10,12 @@ export function EmployeesOnJobList() {
 
   return (
     <section>
-      <h3 className="mb-5 text-xl font-extrabold">Employees On Job</h3>
+      <h3 className="mb-5 text-xl font-extrabold dark:text-white">Employees On Job</h3>
       <div className="space-y-3">
         {employeesOnJob.map((employee) => (
           <article
             key={employee.id}
-            className="flex items-center rounded-lg border border-[#eef0f3] bg-white p-4 shadow-card"
+            className="flex items-center rounded-lg border border-[#eef0f3] bg-white p-4 shadow-card dark:border-white/10 dark:bg-[#1b1d22]"
           >
             <div className="relative mr-4">
               <img
@@ -26,7 +26,7 @@ export function EmployeesOnJobList() {
               
             </div>
             <div className="min-w-0">
-              <p className="truncate font-extrabold">{employee.fullName}</p>
+              <p className="truncate font-extrabold dark:text-white">{employee.fullName}</p>
               <p className="truncate text-xs text-[#8f96a3]">
                 {employee.experienceLevel}
               </p>

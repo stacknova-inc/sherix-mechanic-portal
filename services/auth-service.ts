@@ -6,7 +6,8 @@ import type {
   SignupFormData,
 } from "@/types/auth";
 import { normalizeServiceIds } from "../features/auth/service-utils";
-import { DEVICE_ID, getApiUrl } from "@/services/api-config";
+import { getApiErrorDetails } from "@/services/api-error";
+import { apiClient } from "@/services/http-client";
 
 const AUTH_TOKEN_STORAGE_KEY = "sherix-auth-token";
 const SERVICE_ID_PATTERN = /^[a-f0-9]{24}$/i;
@@ -33,23 +34,70 @@ type BackendUser = Partial<AuthUser> & {
   personalEmail?: string;
 };
 
-async function parseResponse<T>(response: Response): Promise<T> {
-  const contentType = response.headers.get("content-type");
-  const data = contentType?.includes("application/json")
-    ? await response.json()
-    : { message: await response.text() };
+function getFileDebug(file: File | null | undefined) {
+  return file instanceof File
+    ? {
+        isFile: true,
+        name: file.name,
+        size: file.size,
+        type: file.type || "unknown",
+      }
+    : {
+        isFile: false,
+        valueType: file === null ? "null" : typeof file,
+      };
+}
 
-  if (!response.ok) {
-    const message =
-      data?.message ??
-      data?.detail ??
-      data?.error ??
-      "Request failed. Please try again.";
+function getSignupDebugSummary(data: SignupFormData, files: SignupFiles) {
+  return {
+    companyName: data.companyName.trim(),
+    businessEmail: data.businessEmail.trim(),
+    companyNumber: data.companyNumber.trim(),
+    coverageArea: data.coverage_area.trim(),
+    fullName: data.fullName.trim(),
+    personalEmail: data.personalEmail.trim(),
+    serviceIds: normalizeServiceIds(data.servicesOffered),
+    workingHours: data.workingHours.trim(),
+    termsAccepted: data.signedAgreementAccepted,
+    password: data.password ? "[present]" : "[missing]",
+    confirmPassword: data.confirmPassword ? "[present]" : "[missing]",
+    files: {
+      registration_certificate: getFileDebug(files.registrationCertificate),
+      proof_of_address: getFileDebug(files.garageProof),
+      business_insurance: getFileDebug(files.businessInsurance),
+      ghana_card: getFileDebug(files.ghanaCard),
+      admin_insurance: getFileDebug(files.insuranceUpload),
+    },
+  };
+}
 
-    throw new Error(message);
-  }
+function getFormDataDebugSummary(formData: FormData) {
+  return Array.from(formData.entries()).reduce<Record<string, unknown>>(
+    (payload, [key, value]) => {
+      const nextValue =
+        value instanceof File
+          ? {
+              fileName: value.name,
+              fileSize: value.size,
+              fileType: value.type || "unknown",
+            }
+          : key.toLowerCase().includes("password")
+            ? "[redacted]"
+            : value;
 
-  return data as T;
+      if (Object.prototype.hasOwnProperty.call(payload, key)) {
+        const existingValue = payload[key];
+        payload[key] = Array.isArray(existingValue)
+          ? [...existingValue, nextValue]
+          : [existingValue, nextValue];
+        return payload;
+      }
+
+      payload[key] = nextValue;
+      return payload;
+    },
+    {},
+  );
 }
 
 function appendRequiredFile(
@@ -73,11 +121,11 @@ function getValidServiceIds(servicesOffered: SignupFormData["servicesOffered"]) 
 
   serviceIds.forEach((serviceId) => {
     if (!SERVICE_ID_PATTERN.test(serviceId)) {
-      throw new Error("Each service must be selected separately.");
+      throw new Error("Services must be selected from the active services list.");
     }
   });
 
-  return serviceIds;
+  return Array.from(new Set(serviceIds));
 }
 
 function getValidWorkingHours(workingHours: string) {
@@ -99,17 +147,17 @@ export function buildSignupPayload(data: SignupFormData, files: SignupFiles) {
     throw new Error("You must accept the terms before creating an account.");
   }
 
-  formData.append("company_name", data.companyName);
-  formData.append("business_email", data.businessEmail);
-  formData.append("company_number", data.companyNumber);
-  formData.append("coverage_area", data.coverage_area);
+  formData.append("company_name", data.companyName.trim());
+  formData.append("business_email", data.businessEmail.trim());
+  formData.append("company_number", data.companyNumber.trim());
+  formData.append("coverage_area", data.coverage_area.trim());
 
   serviceIds.forEach((serviceId) => {
     formData.append("services", serviceId);
   });
 
-  formData.append("full_name", data.fullName);
-  formData.append("personal_email", data.personalEmail);
+  formData.append("full_name", data.fullName.trim());
+  formData.append("personal_email", data.personalEmail.trim());
   formData.append("password", data.password);
   formData.append("confirm_password", data.confirmPassword);
   formData.append("working_hours", workingHours);
@@ -183,46 +231,89 @@ export async function submitSignup(
   data: SignupFormData,
   files: SignupFiles,
 ): Promise<AuthResponse> {
-  const response = await fetch(getApiUrl("/company-onboarding/register"), {
-    method: "POST",
-    headers: {
-      "x-device-id": DEVICE_ID,
-    },
-    body: buildSignupPayload(data, files),
-  });
+  console.info("[Auth][Signup][1] Preparing signup request", getSignupDebugSummary(data, files));
 
-  const parsedResponse = await parseResponse<BackendAuthResponse>(response);
-  const authResponse = normalizeAuthResponse(parsedResponse, {
-    name: data.fullName,
-    email: data.personalEmail,
-  });
+  try {
+    const payload = buildSignupPayload(data, files);
+    console.info("[Auth][Signup][2] FormData constructed", getFormDataDebugSummary(payload));
 
-  persistAuthToken(authResponse.token);
+    const response = await apiClient.post<BackendAuthResponse>(
+      "/company-onboarding/register",
+      payload,
+    );
+    console.info("[Auth][Signup][3] Backend signup response received", {
+      status: response.status,
+      hasToken:
+        Boolean(response.data.token) ||
+        Boolean(response.data.access_token) ||
+        Boolean(response.data.accessToken) ||
+        Boolean(response.data.data?.token) ||
+        Boolean(response.data.data?.access_token) ||
+        Boolean(response.data.data?.accessToken),
+      message: response.data.message,
+    });
 
-  return authResponse;
+    const parsedResponse = response.data;
+    const authResponse = normalizeAuthResponse(parsedResponse, {
+      name: data.fullName,
+      email: data.personalEmail,
+    });
+
+    persistAuthToken(authResponse.token);
+    console.info("[Auth][Signup][4] Signup auth token persisted", {
+      userEmail: authResponse.user.email,
+      userRole: authResponse.user.role,
+    });
+
+    return authResponse;
+  } catch (error) {
+    console.error("[Auth][Signup][Error] Signup failed", getApiErrorDetails(error, "Unable to create account."));
+    throw error;
+  }
 }
 
 export async function signIn(
   credentials: LoginCredentials,
 ): Promise<AuthResponse> {
-  const response = await fetch(getApiUrl("/auth/login"), {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      email: credentials.email,
+  console.info("[Auth][Login][1] Sending backend login request", {
+    endpoint: "/auth/login",
+    email: credentials.email.trim(),
+    hasPassword: Boolean(credentials.password),
+    selectedServiceId: credentials.serviceId || null,
+  });
+
+  try {
+    const response = await apiClient.post<BackendAuthResponse>("auth/login", {
+      email: credentials.email.trim(),
       password: credentials.password,
-    }),
-  });
+    });
+    console.info("[Auth][Login][2] Backend login response received", {
+      status: response.status,
+      hasToken:
+        Boolean(response.data.token) ||
+        Boolean(response.data.access_token) ||
+        Boolean(response.data.accessToken) ||
+        Boolean(response.data.data?.token) ||
+        Boolean(response.data.data?.access_token) ||
+        Boolean(response.data.data?.accessToken),
+      message: response.data.message,
+    });
 
-  const parsedResponse = await parseResponse<BackendAuthResponse>(response);
-  const authResponse = normalizeAuthResponse(parsedResponse, {
-    name: "Sherix Admin",
-    email: credentials.email,
-  });
+    const parsedResponse = response.data;
+    const authResponse = normalizeAuthResponse(parsedResponse, {
+      name: "Sherix Admin",
+      email: credentials.email.trim(),
+    });
 
-  persistAuthToken(authResponse.token);
+    persistAuthToken(authResponse.token);
+    console.info("[Auth][Login][3] Login auth token persisted", {
+      userEmail: authResponse.user.email,
+      userRole: authResponse.user.role,
+    });
 
-  return authResponse;
+    return authResponse;
+  } catch (error) {
+    console.error("[Auth][Login][Error] Login failed", getApiErrorDetails(error, "Unable to sign in."));
+    throw error;
+  }
 }

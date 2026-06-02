@@ -22,14 +22,20 @@ type BackendEmployee = {
   id?: string;
   name?: string;
   fullName?: string;
+  full_name?: string;
   phoneNumber?: string;
+  phone_number?: string;
   phone?: string;
   email?: string | null;
   dateOfBirth?: string;
+  date_of_birth?: string;
   levelOfExperience?: ExperienceLevel;
+  level_of_experience?: ExperienceLevel;
   experienceLevel?: ExperienceLevel;
   profilePhoto?: string | null;
+  profile_photo?: string | null;
   profilePhotoUrl?: string | null;
+  profile_photo_url?: string | null;
   services?: Array<string | BackendEmployeeService>;
   status?: string;
   isActive?: boolean;
@@ -83,7 +89,7 @@ function normalizeEmployeeService(
 
 function normalizeEmployee(employee: BackendEmployee): Employee {
   const id = employee._id ?? employee.id ?? "";
-  const name = employee.name ?? employee.fullName ?? "Unnamed employee";
+  const name = employee.name ?? employee.fullName ?? employee.full_name ?? "Unnamed employee";
   const services = (employee.services ?? []).map(normalizeEmployeeService);
   const isActive = employee.isActive ?? !employee.deactivatedAt;
   const status = !isActive ? "SUSPENDED" : (employee.status as Employee["status"]) ?? "AVAILABLE";
@@ -93,16 +99,27 @@ function normalizeEmployee(employee: BackendEmployee): Employee {
     id,
     name,
     fullName: name,
-    phoneNumber: employee.phoneNumber ?? employee.phone ?? "",
+    phoneNumber: employee.phoneNumber ?? employee.phone_number ?? employee.phone ?? "",
     email: employee.email ?? null,
     services,
     serviceSpecialties: services.map((service) => service.name),
-    dateOfBirth: employee.dateOfBirth ?? "",
+    dateOfBirth: employee.dateOfBirth ?? employee.date_of_birth ?? "",
     levelOfExperience:
-      employee.levelOfExperience ?? employee.experienceLevel ?? "1-3 years",
+      employee.levelOfExperience ??
+      employee.level_of_experience ??
+      employee.experienceLevel ??
+      "1-3 years",
     experienceLevel:
-      employee.levelOfExperience ?? employee.experienceLevel ?? "1-3 years",
-    profilePhotoUrl: employee.profilePhotoUrl ?? employee.profilePhoto ?? null,
+      employee.levelOfExperience ??
+      employee.level_of_experience ??
+      employee.experienceLevel ??
+      "1-3 years",
+    profilePhotoUrl:
+      employee.profilePhotoUrl ??
+      employee.profile_photo_url ??
+      employee.profilePhoto ??
+      employee.profile_photo ??
+      null,
     status,
     isActive,
     jobsCompleted: employee.jobsCompleted ?? 0,
@@ -211,6 +228,16 @@ export async function getEmployees(
 export async function createEmployee(
   input: CreateEmployeeInput,
 ): Promise<Employee> {
+  console.info("[Employees][Create] Creating employee", {
+    fullName: input.name.trim(),
+    phoneNumber: input.phoneNumber.trim(),
+    email: input.email.trim(),
+    dateOfBirth: input.dateOfBirth,
+    levelOfExperience: input.levelOfExperience,
+    serviceIds: input.serviceIds,
+    hasProfilePhoto: input.profilePhoto?.[0] instanceof File,
+  });
+
   const response = await apiClient.post<BackendEmployeeResponse>(
     "/employees",
     buildEmployeeFormData(input, true),

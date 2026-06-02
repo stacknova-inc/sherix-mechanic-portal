@@ -34,6 +34,7 @@ export type LoginCredentials = {
   email: string;
   password: string;
   remember: boolean;
+  serviceId?: string;
 };
 
 export type AuthResponse = {
