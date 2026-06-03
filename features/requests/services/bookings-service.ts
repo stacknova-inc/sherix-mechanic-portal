@@ -56,27 +56,39 @@ type BackendBookingsResponse =
       results?: BackendBooking[];
     };
 
-function unwrapBookings(response: BackendBookingsResponse): BackendBooking[] {
+function isBackendBooking(value: unknown): value is BackendBooking {
+  return Boolean(value) && typeof value === "object";
+}
+
+function normalizeBookingList(bookings: unknown): BackendBooking[] {
+  return Array.isArray(bookings) ? bookings.filter(isBackendBooking) : [];
+}
+
+function unwrapBookings(response: BackendBookingsResponse | null | undefined): BackendBooking[] {
+  if (!response) {
+    return [];
+  }
+
   if (Array.isArray(response)) {
-    return response;
+    return normalizeBookingList(response);
   }
 
   if (Array.isArray(response.data)) {
-    return response.data;
+    return normalizeBookingList(response.data);
   }
 
-  return (
+  return normalizeBookingList(
     response.data?.bookings ??
     response.data?.docs ??
     response.data?.results ??
     response.bookings ??
-    response.docs ??
-    response.results ??
-    []
+      response.docs ??
+      response.results ??
+      [],
   );
 }
 
-function getEntityName(entity: string | BackendEntity | undefined, fallback: string) {
+function getEntityName(entity: string | BackendEntity | null | undefined, fallback: string) {
   if (!entity) {
     return fallback;
   }
@@ -153,7 +165,7 @@ function normalizeBooking(booking: BackendBooking): AdminRequest {
       booking.serviceName ??
       booking.service_name ??
       getEntityName(booking.service, "Service booking"),
-    date,
+    date: Number.isNaN(new Date(date).getTime()) ? new Date().toISOString() : date,
     priority: normalizePriority(booking.priority),
     status: normalizeStatus(booking.status),
     assignedTo: getEntityName(
@@ -165,7 +177,7 @@ function normalizeBooking(booking: BackendBooking): AdminRequest {
 
 export async function getAdminBookings(): Promise<AdminRequest[]> {
   const response = await apiClient.get<BackendBookingsResponse>(
-    "bookings/admin/bookings",
+    "/bookings/company-admin/bookings",
   );
 
   return unwrapBookings(response.data).map(normalizeBooking);

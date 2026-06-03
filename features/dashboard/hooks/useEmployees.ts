@@ -9,9 +9,11 @@ import {
 } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { getApiErrorMessage } from "@/services/api-error";
+import { isCompanyAdmin, useAuthStore } from "@/store/auth-store";
 import {
   createEmployee,
   deactivateEmployee,
+  deleteEmployee,
   getEmployees,
   getEmployeeStats,
   reactivateEmployee,
@@ -30,9 +32,9 @@ import { filterAndSortEmployees } from "@/features/dashboard/utils/employee-form
 
 const defaultStats: EmployeeStats = {
   total: 0,
-  available: 0,
-  onJob: 0,
-  offline: 0,
+  active: 0,
+  inactive: 0,
+  suspended: 0,
 };
 
 const defaultFilters: EmployeeFilters = {
@@ -64,9 +66,11 @@ function updateEmployeeInCache(
 export function useEmployees() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { hasHydrated, token, user } = useAuthStore();
   const [filters, setFilters] = useState<EmployeeFilters>(defaultFilters);
   const [page, setPage] = useState(1);
   const limit = 10;
+  const canFetchEmployees = hasHydrated && Boolean(token && isCompanyAdmin(user));
 
   const queryParams = useMemo<EmployeeListParams>(
     () => ({
@@ -82,6 +86,7 @@ export function useEmployees() {
   const employeesQuery = useQuery({
     queryKey: employeesQueryKey(queryParams),
     queryFn: () => getEmployees(queryParams),
+    enabled: canFetchEmployees,
   });
 
   const paginatedEmployees = employeesQuery.data;
@@ -170,7 +175,7 @@ export function useEmployees() {
       toast({ type: "error", message: getApiErrorMessage(error) });
     },
     onSuccess: () => {
-      toast({ type: "success", message: "Employee deactivated." });
+      toast({ type: "success", message: "Employee suspended." });
     },
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: ["employees"] });
@@ -193,6 +198,53 @@ export function useEmployees() {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: deleteEmployee,
+    onMutate: async (employeeId: string) => {
+      await queryClient.cancelQueries({ queryKey: ["employees"] });
+      const previousData = queryClient.getQueriesData<PaginatedEmployees>({
+        queryKey: ["employees"],
+      });
+
+      queryClient.setQueriesData<PaginatedEmployees>(
+        { queryKey: ["employees"] },
+        (currentData: PaginatedEmployees | undefined) => {
+          if (!currentData) {
+            return currentData;
+          }
+
+          return {
+            ...currentData,
+            employees: currentData.employees.filter(
+              (employee: Employee) => employee.id !== employeeId,
+            ),
+            total: Math.max(0, currentData.total - 1),
+          };
+        },
+      );
+
+      return { previousData };
+    },
+    onError: (
+      error: unknown,
+      _employeeId: string,
+      context:
+        | { previousData: Array<[QueryKey, PaginatedEmployees | undefined]> }
+        | undefined,
+    ) => {
+      context?.previousData.forEach(([queryKey, data]) => {
+        queryClient.setQueryData(queryKey, data);
+      });
+      toast({ type: "error", message: getApiErrorMessage(error) });
+    },
+    onSuccess: () => {
+      toast({ type: "success", message: "Employee deleted." });
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ["employees"] });
+    },
+  });
+
   return {
     employees,
     filteredEmployees,
@@ -205,7 +257,8 @@ export function useEmployees() {
       createMutation.isPending ||
       updateMutation.isPending ||
       deactivateMutation.isPending ||
-      reactivateMutation.isPending,
+      reactivateMutation.isPending ||
+      deleteMutation.isPending,
     stats,
     page: paginatedEmployees?.page ?? page,
     totalPages: paginatedEmployees?.totalPages ?? 1,
@@ -214,6 +267,7 @@ export function useEmployees() {
     updateEmployee: updateMutation.mutateAsync,
     deactivateEmployee: deactivateMutation.mutateAsync,
     reactivateEmployee: reactivateMutation.mutateAsync,
+    deleteEmployee: deleteMutation.mutateAsync,
     setFilters,
     setPage,
     refetchEmployees: employeesQuery.refetch,
