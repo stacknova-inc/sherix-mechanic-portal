@@ -5,8 +5,16 @@ import type {
   ServiceSpecialty,
 } from "@/features/dashboard/types/employee";
 
-export function formatDate(dateString: string): string {
+export function formatDate(dateString: string): string | null {
+  if (!dateString) {
+    return null;
+  }
+
   const date = new Date(`${dateString}T00:00:00`);
+
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
 
   return date.toLocaleDateString("en-US", {
     year: "numeric",
@@ -16,14 +24,13 @@ export function formatDate(dateString: string): string {
 }
 
 export function formatEmployeeStatus(status: EmployeeStatus): string {
-  return status === "ON_JOB" ? "ON JOB" : status;
+  return status.charAt(0) + status.slice(1).toLowerCase();
 }
 
 export function getEmployeeStatusClasses(status: EmployeeStatus): string {
   const classes: Record<EmployeeStatus, string> = {
-    AVAILABLE: "bg-green-100 text-green-800",
-    ON_JOB: "bg-blue-100 text-blue-800",
-    OFFLINE: "bg-gray-100 text-gray-800",
+    ACTIVE: "bg-green-100 text-green-800",
+    INACTIVE: "bg-gray-100 text-gray-800",
     SUSPENDED: "bg-red-100 text-red-800",
   };
 

@@ -12,6 +12,7 @@ import {
 import { RequestsHeader } from "@/features/requests/components/RequestsHeader";
 import { RequestsTable } from "@/features/requests/components/RequestsTable";
 import { getAdminBookings } from "@/features/requests/services/bookings-service";
+import { isCompanyAdmin, useAuthStore } from "@/store/auth-store";
 import type { AdminRequest, RequestSortKey } from "@/features/requests/types";
 
 const statsIcons = [FileText, Clock3, CheckCircle2, FileCheck2];
@@ -20,7 +21,8 @@ const priorityRank = { Low: 1, Medium: 2, High: 3, Urgent: 4 };
 
 function getSortValue(request: AdminRequest, key: RequestSortKey) {
   if (key === "date") {
-    return new Date(request.date).getTime();
+    const timestamp = new Date(request.date).getTime();
+    return Number.isNaN(timestamp) ? 0 : timestamp;
   }
 
   if (key === "priority") {
@@ -31,9 +33,12 @@ function getSortValue(request: AdminRequest, key: RequestSortKey) {
 }
 
 export function RequestsManagementPage() {
+  const { hasHydrated, token, user } = useAuthStore();
+  const canFetchBookings = hasHydrated && Boolean(token && isCompanyAdmin(user));
   const bookingsQuery = useQuery({
-    queryKey: ["admin-bookings"],
+    queryKey: ["company-admin-bookings"],
     queryFn: getAdminBookings,
+    enabled: canFetchBookings,
   });
   const [searchValue, setSearchValue] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");

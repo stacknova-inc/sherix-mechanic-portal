@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Edit2, MoreVertical, RotateCcw, UserX } from "lucide-react";
+import { Edit2, MoreVertical, Trash2, UserX } from "lucide-react";
 import { EmptyState } from "@/features/dashboard/components/EmptyState";
 import { DEFAULT_EMPLOYEE_AVATAR } from "@/features/dashboard/constants/employee-options";
 import type { Employee } from "@/features/dashboard/types/employee";
@@ -15,9 +15,9 @@ import {
 interface EmployeeTableProps {
   employees: Employee[];
   isLoading?: boolean;
+  onDelete: (employee: Employee) => void;
   onDeactivate: (employee: Employee) => void;
   onEdit: (employee: Employee) => void;
-  onReactivate: (employee: Employee) => void;
 }
 
 function EmployeeTableSkeleton() {
@@ -43,9 +43,9 @@ function EmployeeTableSkeleton() {
 export function EmployeeTable({
   employees,
   isLoading = false,
+  onDelete,
   onDeactivate,
   onEdit,
-  onReactivate,
 }: EmployeeTableProps) {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
 
@@ -64,10 +64,19 @@ export function EmployeeTable({
 
   return (
     <div className="overflow-x-auto rounded-lg border border-[#eef0f3] bg-white shadow-card dark:border-white/10 dark:bg-[#1b1d22]">
-      <table className="w-full min-w-[920px]">
+      <table className="w-full min-w-[1080px]">
         <thead>
           <tr className="border-b border-gray-200 bg-gray-50 dark:border-white/10 dark:bg-white/[0.03]">
-            {["Name", "Contact", "Email", "Specialization", "Status", "Jobs", "Actions"].map(
+            {[
+              "Name",
+              "Date of Birth",
+              "Contact",
+              "Email",
+              "Specialization",
+              "Status",
+              "Jobs",
+              "Actions",
+            ].map(
               (heading) => (
                 <th
                   key={heading}
@@ -80,7 +89,10 @@ export function EmployeeTable({
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200 dark:divide-white/10">
-          {employees.map((employee) => (
+          {employees.map((employee) => {
+            const birthDate = formatDate(employee.dateOfBirth);
+
+            return (
             <tr key={employee.id} className="hover:bg-gray-50 dark:hover:bg-white/[0.03]">
               <td className="px-6 py-4">
                 <div className="flex items-center gap-3">
@@ -93,11 +105,14 @@ export function EmployeeTable({
                     <p className="text-sm font-medium text-gray-900 dark:text-white">
                       {employee.fullName}
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-white/45">
-                      Born {formatDate(employee.dateOfBirth)}
-                    </p>
                   </div>
                 </div>
+              </td>
+
+              <td className="px-6 py-4">
+                <p className="text-sm text-gray-900 dark:text-white/75">
+                  {birthDate ?? "N/A"}
+                </p>
               </td>
 
               <td className="px-6 py-4">
@@ -165,17 +180,17 @@ export function EmployeeTable({
                       <Edit2 size={16} />
                       Edit Employee
                     </button>
-                    {employee.status === "SUSPENDED" || !employee.isActive ? (
+                    {employee.status === "SUSPENDED" ? (
                       <button
                         type="button"
                         onClick={() => {
                           setOpenMenu(null);
-                          onReactivate(employee);
+                          onDelete(employee);
                         }}
-                        className="flex w-full items-center gap-2 px-4 py-2 text-sm text-green-700 hover:bg-green-50"
+                        className="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10"
                       >
-                        <RotateCcw size={16} />
-                        Reactivate Employee
+                        <Trash2 size={16} />
+                        Delete
                       </button>
                     ) : (
                       <button
@@ -187,14 +202,15 @@ export function EmployeeTable({
                         className="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                       >
                         <UserX size={16} />
-                        Deactivate Employee
+                        Suspend
                       </button>
                     )}
                   </div>
                 ) : null}
               </td>
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
     </div>

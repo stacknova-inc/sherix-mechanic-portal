@@ -5,6 +5,14 @@ export const API_BASE_URL =
 
 export const DEVICE_ID = "123";
 
+export function normalizeApiBaseUrl(baseUrl = API_BASE_URL): string {
+  return baseUrl.replace(/\/+$/, "");
+}
+
+export function normalizeApiPath(path: string): string {
+  return path.startsWith("/") ? path : `/${path}`;
+}
+
 export function getApiUrl(path: string): string {
   if (!API_BASE_URL) {
     throw new Error(
@@ -12,5 +20,5 @@ export function getApiUrl(path: string): string {
     );
   }
 
-  return `${API_BASE_URL.replace(/\/$/, "")}${path}`;
+  return `${normalizeApiBaseUrl()}${normalizeApiPath(path)}`;
 }

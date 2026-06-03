@@ -4,8 +4,6 @@ import { useState } from "react";
 import {
   BriefcaseBusiness,
   CircleOff,
-  Grid3x3,
-  Layout,
   Plus,
   Search,
   SlidersHorizontal,
@@ -37,9 +35,8 @@ export function EmployeesPage() {
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [statusAction, setStatusAction] = useState<{
     employee: Employee;
-    action: "deactivate" | "reactivate";
+    action: "suspend" | "delete";
   } | null>(null);
-  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const { data: services = [] } = useServices();
   const {
     filteredEmployees,
@@ -53,8 +50,8 @@ export function EmployeesPage() {
     totalPages,
     addEmployee,
     deactivateEmployee,
+    deleteEmployee,
     error,
-    reactivateEmployee,
     setPage,
     updateEmployee,
     setFilters,
@@ -84,32 +81,32 @@ export function EmployeesPage() {
         <EmployeeStatCard
           title="Total Employees"
           value={stats.total}
-          trend="+4.7%"
-          helper="from last month"
+          trend=""
+          helper="In roster"
           icon={UsersRound}
           tone="positive"
         />
         <EmployeeStatCard
-          title="Available"
-          value={stats.available}
-          trend="+3.2%"
+          title="Active"
+          value={stats.active}
+          trend=""
           helper="Ready for assignment"
           icon={UserCheck}
           tone="positive"
         />
         <EmployeeStatCard
-          title="On Job"
-          value={stats.onJob}
-          trend="+1.8%"
-          helper="Currently assigned"
+          title="Inactive"
+          value={stats.inactive}
+          trend=""
+          helper="Not accepting jobs"
           icon={BriefcaseBusiness}
           tone="info"
         />
         <EmployeeStatCard
-          title="Offline"
-          value={stats.offline}
-          trend="-1.3%"
-          helper="Not accepting jobs"
+          title="Suspended"
+          value={stats.suspended}
+          trend=""
+          helper="Restricted from assignments"
           icon={CircleOff}
           tone="danger"
         />
@@ -137,33 +134,6 @@ export function EmployeesPage() {
           </label>
 
           <div className="flex flex-wrap items-center gap-3">
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setViewMode("list")}
-                className={`rounded-md p-2 ${
-                  viewMode === "list"
-                    ? "bg-gray-100 text-gray-900 dark:bg-white/10 dark:text-white"
-                    : "text-gray-600 hover:bg-gray-50 dark:text-white/55 dark:hover:bg-white/10"
-                }`}
-                title="List view"
-              >
-                <Layout size={18} />
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode("grid")}
-                className={`rounded-md p-2 ${
-                  viewMode === "grid"
-                    ? "bg-gray-100 text-gray-900 dark:bg-white/10 dark:text-white"
-                    : "text-gray-600 hover:bg-gray-50 dark:text-white/55 dark:hover:bg-white/10"
-                }`}
-                title="Grid view"
-              >
-                <Grid3x3 size={18} />
-              </button>
-            </div>
-
             <span className="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 dark:border-white/10 dark:text-white/65">
               <SlidersHorizontal size={16} />
               Filters
@@ -200,9 +170,7 @@ export function EmployeesPage() {
               <option value="all">Status</option>
               {EMPLOYEE_STATUSES.map((status) => (
                 <option key={status} value={status}>
-                  {status === "ON_JOB"
-                    ? "On Job"
-                    : status.charAt(0) + status.slice(1).toLowerCase()}
+                  {status.charAt(0) + status.slice(1).toLowerCase()}
                 </option>
               ))}
             </select>
@@ -244,16 +212,16 @@ export function EmployeesPage() {
             <EmployeeTable
               employees={filteredEmployees}
               isLoading={isLoading}
+              onDelete={(employee) =>
+                setStatusAction({ employee, action: "delete" })
+              }
               onDeactivate={(employee) =>
-                setStatusAction({ employee, action: "deactivate" })
+                setStatusAction({ employee, action: "suspend" })
               }
               onEdit={(employee) => {
                 setEditingEmployee(employee);
                 setIsModalOpen(true);
               }}
-              onReactivate={(employee) =>
-                setStatusAction({ employee, action: "reactivate" })
-              }
             />
 
             <div className="mt-4 flex flex-col gap-3 text-sm text-gray-600 dark:text-white/55 md:flex-row md:items-center md:justify-between">
@@ -317,10 +285,10 @@ export function EmployeesPage() {
             return;
           }
 
-          if (statusAction.action === "deactivate") {
+          if (statusAction.action === "suspend") {
             await deactivateEmployee(statusAction.employee.id);
           } else {
-            await reactivateEmployee(statusAction.employee.id);
+            await deleteEmployee(statusAction.employee.id);
           }
 
           setStatusAction(null);

@@ -40,11 +40,17 @@ const priorityClasses = {
 };
 
 function formatDate(value: string) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "N/A";
+  }
+
   return new Intl.DateTimeFormat("en", {
     month: "short",
     day: "2-digit",
     year: "numeric",
-  }).format(new Date(value));
+  }).format(date);
 }
 
 function LoadingSkeleton() {

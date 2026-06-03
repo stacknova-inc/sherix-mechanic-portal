@@ -1,19 +1,74 @@
 "use client";
 
-import { CalendarDays } from "lucide-react";
+import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { CalendarDays, CheckCircle2, Clock3, UsersRound, Zap } from "lucide-react";
 import { ActiveRequestsTable } from "@/features/dashboard/components/ActiveRequestsTable";
 import { PageHeader } from "@/features/dashboard/components/PageHeader";
-import { RevenueChart } from "@/features/dashboard/components/RevenueChart";
-import { ServiceDistributionChart } from "@/features/dashboard/components/ServiceDistributionChart";
 import { StatCard } from "@/features/dashboard/components/StatCard";
+import { useEmployees } from "@/features/dashboard/hooks/useEmployees";
 import { DashboardShell } from "@/features/dashboard/layouts/DashboardShell";
-import { overviewStats } from "@/features/dashboard/mocks/dashboard-mock-data";
 import { EmployeesOnJobList } from "../components/EmployeesOnJobList";
-import { useAuthStore } from "@/store/auth-store";
+import { getAdminBookings } from "@/features/requests/services/bookings-service";
+import { isCompanyAdmin, useAuthStore } from "@/store/auth-store";
 
 export function DashboardOverviewPage() {
   const user = useAuthStore((state) => state.user);
+  const hasHydrated = useAuthStore((state) => state.hasHydrated);
+  const token = useAuthStore((state) => state.token);
+  const canFetchDashboard = hasHydrated && Boolean(token && isCompanyAdmin(user));
   const firstName = user?.name?.trim().split(/\s+/)[0] || "Admin";
+  const { employees, isLoading: isLoadingEmployees, stats } = useEmployees();
+  const bookingsQuery = useQuery({
+    queryKey: ["company-admin-bookings"],
+    queryFn: getAdminBookings,
+    enabled: canFetchDashboard,
+  });
+  const bookings = bookingsQuery.data ?? [];
+  const formattedToday = useMemo(
+    () =>
+      new Date().toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      }),
+    [],
+  );
+  const currentYear = new Date().getFullYear();
+  const activeRequestCount = bookings.filter((booking) =>
+    ["Pending", "In Review", "Approved"].includes(booking.status),
+  ).length;
+  const completedRequestCount = bookings.filter(
+    (booking) => booking.status === "Completed",
+  ).length;
+  const overviewStats = [
+    {
+      label: "Active Requests",
+      value: activeRequestCount.toLocaleString(),
+      helper: "Jobs currently live",
+      icon: Zap,
+    },
+    {
+      label: "Total Active Employees",
+      value: stats.active.toLocaleString(),
+      helper: "Ready for assignment",
+      icon: UsersRound,
+    },
+    {
+      label: "Pending Requests",
+      value: bookings
+        .filter((booking) => booking.status === "Pending")
+        .length.toLocaleString(),
+      helper: "Awaiting action",
+      icon: Clock3,
+    },
+    {
+      label: "Completed Requests",
+      value: completedRequestCount.toLocaleString(),
+      helper: "Finished bookings",
+      icon: CheckCircle2,
+    },
+  ];
 
   return (
     <DashboardShell>
@@ -24,7 +79,7 @@ export function DashboardOverviewPage() {
           <>
             <span className="flex h-9 items-center gap-2 rounded-lg border border-[#eef0f3] bg-white px-4 text-xs font-extrabold text-[#4d5562] dark:border-white/10 dark:bg-white/5 dark:text-white/70">
               <CalendarDays className="size-4" />
-              October 24, 2024
+              {formattedToday}
             </span>
             {["Today", "This Week", "This Month"].map((tab) => (
               <button
@@ -49,42 +104,25 @@ export function DashboardOverviewPage() {
             label={stat.label}
             value={stat.value}
             helper={stat.helper}
-            trend={stat.trend}
             icon={stat.icon}
           />
         ))}
       </div>
 
-      <div className="mt-12 grid gap-6 xl:grid-cols-[1fr_320px]">
-        <section className="rounded-lg border border-[#eef0f3] bg-white p-6 shadow-card dark:border-white/10 dark:bg-[#1b1d22]">
-          <div className="flex items-start justify-between border-b border-[#f0f2f5] pb-5 dark:border-white/10">
-            <div>
-              <h3 className="text-lg font-extrabold dark:text-white">Daily Revenue Overview</h3>
-              <p className="text-sm text-[#737b88] dark:text-white/55">Last 30 days</p>
-            </div>
-            <div className="flex rounded-lg border border-[#eef0f3] p-1 text-xs dark:border-white/10">
-              <button className="h-7 px-4 text-[#6f7784]">Volume</button>
-              <button className="h-7 rounded-lg bg-white px-4 shadow dark:bg-white/10 dark:text-white">Revenue</button>
-            </div>
-          </div>
-          <RevenueChart />
-        </section>
-
-        <section className="rounded-lg border border-[#eef0f3] bg-white p-6 shadow-card dark:border-white/10 dark:bg-[#1b1d22]">
-          <h3 className="text-lg font-extrabold dark:text-white">Service Distribution</h3>
-          <p className="mt-1 text-sm text-[#737b88] dark:text-white/55">Revenue share by service</p>
-          <ServiceDistributionChart />
-        </section>
-      </div>
-
       <div className="mt-12 grid gap-8 xl:grid-cols-[1fr_440px]">
-        <ActiveRequestsTable />
-        <EmployeesOnJobList />
+        <ActiveRequestsTable
+          requests={bookings}
+          isLoading={bookingsQuery.isLoading}
+        />
+        <EmployeesOnJobList
+          employees={employees}
+          isLoading={isLoadingEmployees}
+        />
       </div>
 
       <footer className="mt-16 border-t border-[#eef0f3] py-6 text-xs text-[#6f7784] dark:border-white/10 dark:text-white/55">
         <div className="flex flex-col gap-4 md:flex-row md:items-center">
-          <span>&copy; 2024 AutoFix Garage Operations Center</span>
+          <span>&copy; {currentYear} Sherix Mechanic Portal</span>
           <nav className="flex gap-6">
             <a>Privacy Policy</a>
             <a>Terms of Service</a>
