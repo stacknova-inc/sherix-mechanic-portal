@@ -1,5 +1,6 @@
-import { SignupContainer } from "@/features/auth/SignupContainer";
+import { SignInForm } from "@/features/auth/SignInForm";
+
 
 export default function Home() {
-  return <SignupContainer />;
+  return <SignInForm />;
 }
