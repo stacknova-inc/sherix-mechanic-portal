@@ -4,7 +4,7 @@ import { Building2, CheckCircle2, FileText, Info, UserRound } from "lucide-react
 import { getServiceNames } from "./service-utils";
 import { useToast } from "@/hooks/use-toast";
 import { submitSignup } from "@/services/auth-service";
-import { useAuthStore } from "@/store/auth-store";
+import { isCompanyAdmin, useAuthStore } from "@/store/auth-store";
 
 function displayFile(file: File | null | undefined, fallback: string) {
   return file?.name ?? fallback;
@@ -20,12 +20,12 @@ function SummaryCard({
   rows: { label: string; value: string; file?: boolean; checked?: boolean }[];
 }) {
   return (
-    <section className="overflow-hidden rounded-[8px] border border-[#edf0f3] bg-white shadow-card">
-      <header className="flex h-[62px] items-center gap-3 border-b border-[#eef0f3] bg-[#fbfcfc] px-6">
+    <section className="overflow-hidden rounded-[8px] border border-[#edf0f3] bg-white shadow-card dark:border-white/10 dark:bg-[#1b1d22]">
+      <header className="flex h-[62px] items-center gap-3 border-b border-[#eef0f3] bg-[#fbfcfc] px-6 dark:border-white/10 dark:bg-white/[0.03]">
         <span className="flex size-9 items-center justify-center rounded-[8px] bg-[#ffe8ee] text-brand-red">
           {icon}
         </span>
-        <h2 className="text-[15px] font-extrabold text-brand-dark">{title}</h2>
+        <h2 className="text-[15px] font-extrabold text-brand-dark dark:text-white">{title}</h2>
       </header>
       <div className="px-6 py-6">
         {rows.map((row) => (
@@ -36,7 +36,7 @@ function SummaryCard({
             <p className="mb-1.5 text-[9px] font-extrabold uppercase tracking-[0.12em] text-[#9aa1ad]">
               {row.label}
             </p>
-            <p className="flex items-center gap-2 text-[13px] font-extrabold leading-5 text-brand-dark">
+            <p className="flex items-center gap-2 text-[13px] font-extrabold leading-5 text-brand-dark dark:text-white">
               {row.file ? <FileText className="size-3.5 shrink-0 text-brand-red" /> : null}
               {row.checked ? <CheckCircle2 className="size-3.5 shrink-0 text-brand-red" /> : null}
               <span className="truncate">{row.value || "Not provided"}</span>
@@ -56,6 +56,7 @@ export function ReviewStep() {
     loading,
     setLoading,
     setUser,
+    logout,
     setError,
     setSuccess,
   } = useAuthStore();
@@ -65,7 +66,12 @@ export function ReviewStep() {
     try {
       setLoading(true);
       setError(null);
-      const response = await submitSignup(formData, files);
+      const { formData: latestFormData, files: latestFiles } = useAuthStore.getState();
+      const response = await submitSignup(latestFormData, latestFiles);
+      if (!isCompanyAdmin(response.user)) {
+        logout();
+        throw new Error("Only company admin accounts can access this dashboard.");
+      }
       setUser(response.user, response.token);
       setSuccess(response.message ?? "Account created successfully.");
       toast({ type: "success", message: response.message ?? "Account created successfully." });
@@ -81,10 +87,10 @@ export function ReviewStep() {
   return (
     <main className="mx-auto w-full max-w-[1040px] px-8 pb-16 pt-10">
       <div className="mb-9 mx-auto max-w-[720px]">
-        <h1 className="text-center text-[30px] font-extrabold tracking-[-0.02em] text-brand-dark">
+        <h1 className="text-center text-[30px] font-extrabold tracking-[-0.02em] text-brand-dark dark:text-white">
           Review Your Registration Summary
         </h1>
-        <p className="mx-auto mt-3 max-w-[560px] text-center text-[14px] font-medium leading-6 text-[#8e8f94]">
+        <p className="mx-auto mt-3 max-w-[560px] text-center text-[14px] font-medium leading-6 text-[#8e8f94] dark:text-white/55">
           Confirm the details entered in the company and admin profile steps.
         </p>
       </div>
@@ -143,9 +149,9 @@ export function ReviewStep() {
         />
       </div>
 
-      <section className="mt-8 rounded-[8px] border border-[#edf0f3] bg-[#fbfcfc] px-6 py-7">
-        <div className="mx-auto flex max-w-[680px] items-start gap-4 text-[13px] font-medium leading-6 text-[#8b919a]">
-          <Info className="mt-1 size-4 shrink-0 text-brand-dark" />
+      <section className="mt-8 rounded-[8px] border border-[#edf0f3] bg-[#fbfcfc] px-6 py-7 dark:border-white/10 dark:bg-white/[0.03]">
+        <div className="mx-auto flex max-w-[680px] items-start gap-4 text-[13px] font-medium leading-6 text-[#8b919a] dark:text-white/60">
+          <Info className="mt-1 size-4 shrink-0 text-brand-dark dark:text-white" />
           <p>
             By confirming, you acknowledge that the information shown above is accurate.
           </p>
@@ -153,7 +159,7 @@ export function ReviewStep() {
         <div className="mt-6 flex flex-col items-center justify-center gap-4 sm:flex-row">
           <button
             onClick={previousStep}
-            className="h-[48px] w-[180px] rounded-[8px] border border-[#d6dae1] bg-white text-[13px] font-extrabold text-brand-dark"
+            className="h-[48px] w-[180px] rounded-[8px] border border-[#d6dae1] bg-white text-[13px] font-extrabold text-brand-dark dark:border-white/10 dark:bg-transparent dark:text-white"
           >
             Previous Step
           </button>

@@ -1,21 +1,27 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQuery } from "@tanstack/react-query";
 import { BriefcaseBusiness, Check, Clock3, FileText, LockKeyhole, Mail, X, UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { adminSchema, type AdminFormValues } from "@/features/auth/schemas";
-import { normalizeServiceIds, type PublicService } from "./service-utils";
+import { normalizeServiceIds } from "./service-utils";
+import { getApiErrorDetails } from "@/services/api-error";
 import { getPublicServices } from "@/services/services-service";
+import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/store/auth-store";
 import { cn } from "@/utils/cn";
 import { TextField, UploadField } from "./FormControls";
 
 export function AdminProfileStep() {
   const [agreementOpen, setAgreementOpen] = useState(false);
-  const [services, setServices] = useState<PublicService[]>([]);
-  const [servicesLoading, setServicesLoading] = useState(true);
-  const [servicesError, setServicesError] = useState<string | null>(null);
+  const { toast } = useToast();
+  const servicesQuery = useQuery({
+    queryKey: ["active-services", "auth"],
+    queryFn: getPublicServices,
+    staleTime: 5 * 60 * 1000,
+  });
   const { formData, files, setFormData, setFile, nextStep, previousStep } = useAuthStore();
   const {
     register,
@@ -24,15 +30,28 @@ export function AdminProfileStep() {
     watch,
     formState: { errors },
   } = useForm<AdminFormValues>({
-    resolver: zodResolver(adminSchema),
+    resolver: zodResolver(adminSchema) as Resolver<AdminFormValues>,
     defaultValues: {
       ...formData,
       ghanaCard: files.ghanaCard ?? undefined,
-      insuranceUpload: files.insuranceUpload ?? null,
+      insuranceUpload: files.insuranceUpload ?? undefined,
     },
   });
 
   const onSubmit = (values: AdminFormValues) => {
+    console.info("[Auth][Signup][AdminStep] Step submitted", {
+      fullName: values.fullName.trim(),
+      personalEmail: values.personalEmail.trim(),
+      serviceIds: normalizeServiceIds(values.servicesOffered),
+      workingHours: values.workingHours.trim(),
+      signedAgreementAccepted: values.signedAgreementAccepted,
+      password: values.password ? "[present]" : "[missing]",
+      confirmPassword: values.confirmPassword ? "[present]" : "[missing]",
+      files: {
+        ghanaCard: values.ghanaCard.name,
+        adminInsurance: values.insuranceUpload.name,
+      },
+    });
     setFormData(values);
     nextStep();
   };
@@ -41,37 +60,18 @@ export function AdminProfileStep() {
   const agreementRegistration = register("signedAgreementAccepted");
 
   useEffect(() => {
-    let mounted = true;
-
-    async function loadServices() {
-      try {
-        setServicesLoading(true);
-        setServicesError(null);
-        const publicServices = await getPublicServices();
-
-        if (mounted) {
-          setServices(publicServices);
-        }
-      } catch (error) {
-        if (mounted) {
-          setServices([]);
-          setServicesError(
-            error instanceof Error ? error.message : "Unable to load services.",
-          );
-        }
-      } finally {
-        if (mounted) {
-          setServicesLoading(false);
-        }
-      }
+    if (servicesQuery.isError) {
+      const details = getApiErrorDetails(
+        servicesQuery.error,
+        "Unable to load active services.",
+      );
+      console.error("[Services] Services failed to load", details);
+      toast({
+        type: "error",
+        message: `${details.message} (${details.reason.replaceAll("_", " ")})`,
+      });
     }
-
-    loadServices();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  }, [servicesQuery.error, servicesQuery.isError, toast]);
 
   const toggleService = (serviceId: string) => {
     const nextServices = selectedServices.includes(serviceId)
@@ -84,10 +84,10 @@ export function AdminProfileStep() {
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
       <div className="mb-6 text-center">
-        <h1 className="text-[22px] font-extrabold tracking-[-0.01em] text-brand-dark">
+        <h1 className="text-[22px] font-extrabold tracking-[-0.01em] text-brand-dark dark:text-white">
           Create Admin Profile
         </h1>
-        <p className="mt-2 text-[12px] font-medium text-[#8f96a3]">
+        <p className="mt-2 text-[12px] font-medium text-[#8f96a3] dark:text-white/55">
           Enter the credentials for the primary administrator account.
         </p>
       </div>
@@ -114,17 +114,21 @@ export function AdminProfileStep() {
             <BriefcaseBusiness className="size-[14px] text-[#9ba3ae]" />
             <span className="auth-label mb-0">Services <span className="text-brand-red">*</span></span>
           </div>
-          {servicesLoading ? (
-            <div className="rounded-[8px] border border-[#dfe3e9] bg-white px-3 py-4 text-[12px] font-semibold text-[#687181]">
+          {servicesQuery.isLoading ? (
+            <div className="rounded-[8px] border border-[#dfe3e9] bg-white px-3 py-4 text-[12px] font-semibold text-[#687181] dark:border-white/10 dark:bg-[#202329] dark:text-white/60">
               Loading services...
             </div>
-          ) : servicesError ? (
+          ) : servicesQuery.isError ? (
             <div className="rounded-[8px] border border-brand-red bg-[#fff4f6] px-3 py-4 text-[12px] font-semibold text-brand-red">
-              {servicesError}
+              Unable to load active services. Check the console for request details.
+            </div>
+          ) : !servicesQuery.data?.length ? (
+            <div className="rounded-[8px] border border-[#dfe3e9] bg-white px-3 py-4 text-[12px] font-semibold text-[#687181] dark:border-white/10 dark:bg-[#202329] dark:text-white/60">
+              No active services are available right now.
             </div>
           ) : (
             <div className="grid gap-3 md:grid-cols-2">
-              {services.map((service) => {
+              {servicesQuery.data.map((service) => {
               const selected = selectedServices.includes(service.id);
 
               return (
@@ -133,10 +137,10 @@ export function AdminProfileStep() {
                   type="button"
                   onClick={() => toggleService(service.id)}
                   className={cn(
-                    "flex min-h-[48px] items-center gap-3 rounded-[8px] border bg-white px-3 text-left transition",
+                    "flex min-h-[48px] items-center gap-3 rounded-[8px] border bg-white px-3 text-left transition dark:bg-[#202329]",
                     selected
-                      ? "border-brand-red bg-[#fff4f6] text-brand-dark shadow-[0_10px_18px_rgba(228,7,47,0.08)]"
-                      : "border-[#dfe3e9] text-[#687181] hover:border-brand-red",
+                      ? "border-brand-red bg-[#fff4f6] text-brand-dark shadow-[0_10px_18px_rgba(228,7,47,0.08)] dark:bg-brand-red/10 dark:text-white"
+                      : "border-[#dfe3e9] text-[#687181] hover:border-brand-red dark:border-white/10 dark:text-white/60",
                   )}
                 >
                   <span
@@ -144,7 +148,7 @@ export function AdminProfileStep() {
                       "flex size-5 shrink-0 items-center justify-center rounded border",
                       selected
                         ? "border-brand-red bg-brand-red text-white"
-                        : "border-[#cfd4dc] bg-white text-transparent",
+                        : "border-[#cfd4dc] bg-white text-transparent dark:border-white/20 dark:bg-transparent",
                     )}
                   >
                     <Check className="size-3.5" />
@@ -168,18 +172,18 @@ export function AdminProfileStep() {
         <UploadField
           label="Insurance Upload"
           placeholder="Upload Insurance PDF"
-          optional
+          required
           icon="file"
           file={files.insuranceUpload}
           error={errors.insuranceUpload}
           onChange={(file) => {
             setFile("insuranceUpload", file);
-            setValue("insuranceUpload", file, { shouldValidate: true });
+            setValue("insuranceUpload", file as AdminFormValues["insuranceUpload"], { shouldValidate: true });
           }}
         />
       </div>
 
-      <label className="mt-6 flex min-h-[70px] items-start gap-3 rounded-[8px] border border-[#eef0f3] bg-[#fafafa] px-4 py-3">
+      <label className="mt-6 flex min-h-[70px] items-start gap-3 rounded-[8px] border border-[#eef0f3] bg-[#fafafa] px-4 py-3 dark:border-white/10 dark:bg-white/[0.03]">
         <input
           type="checkbox"
           className="mt-1 size-4 rounded border-[#9da4ae] text-brand-red focus:ring-brand-red"
@@ -199,19 +203,19 @@ export function AdminProfileStep() {
               event.preventDefault();
               setAgreementOpen(true);
             }}
-            className="block text-left text-[11px] font-extrabold text-[#363b44] underline decoration-[#d8dce3] underline-offset-2"
+            className="block text-left text-[11px] font-extrabold text-[#363b44] underline decoration-[#d8dce3] underline-offset-2 dark:text-white"
           >
             Read and accept the signed agreement
           </button>
-          <span className="mt-1 block max-w-[550px] text-[10px] font-medium leading-4 text-[#8c94a0]">
+          <span className="mt-1 block max-w-[550px] text-[10px] font-medium leading-4 text-[#8c94a0] dark:text-white/50">
             Open the agreement to review the setup responsibilities before ticking this box.
           </span>
           {errors.signedAgreementAccepted ? <span className="auth-error">{errors.signedAgreementAccepted.message}</span> : null}
         </span>
       </label>
 
-      <div className="mt-7 flex items-center justify-between border-t border-[#edf0f3] pt-5">
-        <button type="button" onClick={previousStep} className="flex h-[38px] items-center gap-2 px-2 text-[12px] font-semibold text-brand-dark">
+      <div className="mt-7 flex items-center justify-between border-t border-[#edf0f3] pt-5 dark:border-white/10">
+        <button type="button" onClick={previousStep} className="flex h-[38px] items-center gap-2 px-2 text-[12px] font-semibold text-brand-dark dark:text-white">
           <span className="text-[16px] leading-none">&lsaquo;</span> Back
         </button>
         <button type="submit" className="flex h-[38px] w-[128px] items-center justify-center rounded-[8px] bg-brand-red text-[12px] font-extrabold text-white">
@@ -221,12 +225,12 @@ export function AdminProfileStep() {
 
       {agreementOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4">
-          <div className="w-full max-w-[560px] rounded-[10px] bg-white shadow-[0_24px_70px_rgba(17,24,39,0.2)]">
-            <div className="flex h-[58px] items-center gap-3 border-b border-[#edf0f3] px-5">
+          <div className="w-full max-w-[560px] rounded-[10px] bg-white shadow-[0_24px_70px_rgba(17,24,39,0.2)] dark:bg-[#1b1d22]">
+            <div className="flex h-[58px] items-center gap-3 border-b border-[#edf0f3] px-5 dark:border-white/10">
               <span className="flex size-8 items-center justify-center rounded-[8px] bg-[#ffe8ee] text-brand-red">
                 <FileText className="size-4" />
               </span>
-              <h2 className="text-[15px] font-extrabold text-brand-dark">Signed Agreement</h2>
+              <h2 className="text-[15px] font-extrabold text-brand-dark dark:text-white">Signed Agreement</h2>
               <button
                 type="button"
                 onClick={() => setAgreementOpen(false)}
@@ -235,7 +239,7 @@ export function AdminProfileStep() {
                 <X className="size-4" />
               </button>
             </div>
-            <div className="max-h-[360px] overflow-y-auto px-5 py-4 text-[12px] font-medium leading-6 text-[#5f6672]">
+            <div className="max-h-[360px] overflow-y-auto px-5 py-4 text-[12px] font-medium leading-6 text-[#5f6672] dark:text-white/65">
               <p className="mb-3">
                 By accepting this agreement, the administrator confirms that the provided business and identity information is accurate and belongs to the company being registered.
               </p>
@@ -249,11 +253,11 @@ export function AdminProfileStep() {
                 Acceptance of this agreement authorizes Sherix Admin to use the submitted information for onboarding, compliance checks, and account setup.
               </p>
             </div>
-            <div className="flex items-center justify-end gap-3 border-t border-[#edf0f3] px-5 py-4">
+            <div className="flex items-center justify-end gap-3 border-t border-[#edf0f3] px-5 py-4 dark:border-white/10">
               <button
                 type="button"
                 onClick={() => setAgreementOpen(false)}
-                className="h-[38px] rounded-[8px] border border-[#dfe3e9] px-4 text-[12px] font-extrabold text-brand-dark"
+                className="h-[38px] rounded-[8px] border border-[#dfe3e9] px-4 text-[12px] font-extrabold text-brand-dark dark:border-white/10 dark:text-white"
               >
                 Close
               </button>

@@ -7,6 +7,11 @@
   --foreground: #17191f;
 }
 
+.dark {
+  --background: #121419;
+  --foreground: #f7f8fa;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -16,12 +21,17 @@ html {
   background: #f6f7f8;
 }
 
+html.dark {
+  background: #121419;
+}
+
 body {
   min-height: 100%;
   margin: 0;
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-inter), Inter, Arial, sans-serif;
+  transition: background-color 180ms ease, color 180ms ease;
 }
 
 button,
@@ -33,11 +43,11 @@ select {
 
 @layer components {
   .auth-input {
-    @apply h-[40px] w-full rounded-[8px] border border-[#dfe3e9] bg-white pl-9 pr-3 text-[12px] font-medium text-brand-dark outline-none transition placeholder:text-[#9ba3ae] focus:border-brand-red focus:ring-4 focus:ring-red-50;
+    @apply h-[40px] w-full rounded-[8px] border border-[#dfe3e9] bg-white pl-9 pr-3 text-[12px] font-medium text-brand-dark outline-none transition placeholder:text-[#9ba3ae] focus:border-brand-red focus:ring-4 focus:ring-red-50 dark:border-white/10 dark:bg-[#202329] dark:text-white dark:placeholder:text-white/35 dark:focus:ring-red-950/30;
   }
 
   .auth-label {
-    @apply mb-1.5 block text-[11px] font-semibold leading-none text-[#333842];
+    @apply mb-1.5 block text-[11px] font-semibold leading-none text-[#333842] dark:text-white/80;
   }
 
   .auth-error {

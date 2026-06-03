@@ -8,6 +8,31 @@ import type {
   SignupFormData,
   SignupStep,
 } from "@/types/auth";
+import { clearPersistedAuthToken } from "@/services/auth-service";
+
+export const COMPANY_ADMIN_ROLE = "company_admin";
+
+export function normalizeRole(role: string | null | undefined) {
+  return role?.trim().toLowerCase().replaceAll("-", "_").replaceAll(" ", "_") ?? "";
+}
+
+export function isCompanyAdmin(user: Pick<AuthUser, "role"> | null | undefined) {
+  return normalizeRole(user?.role) === COMPANY_ADMIN_ROLE;
+}
+
+const SIGNUP_FORM_DATA_KEYS = [
+  "companyName",
+  "businessEmail",
+  "companyNumber",
+  "coverage_area",
+  "fullName",
+  "personalEmail",
+  "password",
+  "confirmPassword",
+  "servicesOffered",
+  "workingHours",
+  "signedAgreementAccepted",
+] as const satisfies readonly (keyof SignupFormData)[];
 
 export const initialSignupData: SignupFormData = {
   companyName: "",
@@ -28,8 +53,11 @@ type AuthStore = {
   files: SignupFiles;
   currentStep: SignupStep;
   loading: boolean;
+  hasHydrated: boolean;
   user: AuthUser | null;
   token: string | null;
+  selectedServiceId: string | null;
+  sidebarCollapsed: boolean;
   error: string | null;
   success: string | null;
   setFormData: (data: Partial<SignupFormData>) => void;
@@ -39,10 +67,24 @@ type AuthStore = {
   setCurrentStep: (step: SignupStep) => void;
   resetForm: () => void;
   setLoading: (loading: boolean) => void;
+  setHasHydrated: (hasHydrated: boolean) => void;
   setUser: (user: AuthUser | null, token?: string | null) => void;
+  logout: () => void;
+  setSelectedServiceId: (serviceId: string | null) => void;
+  toggleSidebarCollapsed: () => void;
   setError: (error: string | null) => void;
   setSuccess: (success: string | null) => void;
 };
+
+function pickSignupFormData(data: Partial<SignupFormData>) {
+  return SIGNUP_FORM_DATA_KEYS.reduce<Partial<SignupFormData>>((payload, key) => {
+    if (Object.prototype.hasOwnProperty.call(data, key)) {
+      payload[key] = data[key] as never;
+    }
+
+    return payload;
+  }, {});
+}
 
 export const useAuthStore = create<AuthStore>()(
   persist(
@@ -51,12 +93,17 @@ export const useAuthStore = create<AuthStore>()(
       files: {},
       currentStep: 1,
       loading: false,
+      hasHydrated: false,
       user: null,
       token: null,
+      selectedServiceId: null,
+      sidebarCollapsed: false,
       error: null,
       success: null,
       setFormData: (data) =>
-        set((state) => ({ formData: { ...state.formData, ...data } })),
+        set((state) => ({
+          formData: { ...state.formData, ...pickSignupFormData(data) },
+        })),
       setFile: (key, file) =>
         set((state) => ({ files: { ...state.files, [key]: file } })),
       nextStep: () =>
@@ -77,17 +124,50 @@ export const useAuthStore = create<AuthStore>()(
           success: null,
         }),
       setLoading: (loading) => set({ loading }),
+      setHasHydrated: (hasHydrated) => set({ hasHydrated }),
       setUser: (user, token = null) => set({ user, token }),
+      logout: () => {
+        clearPersistedAuthToken();
+        set({
+          user: null,
+          token: null,
+          selectedServiceId: null,
+          error: null,
+          success: null,
+        });
+      },
+      setSelectedServiceId: (serviceId) => set({ selectedServiceId: serviceId }),
+      toggleSidebarCollapsed: () =>
+        set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
       setError: (error) => set({ error }),
       setSuccess: (success) => set({ success }),
     }),
     {
       name: "sherix-auth-store",
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
+      merge: (persistedState, currentState) => {
+        const persisted =
+          typeof persistedState === "object" && persistedState !== null
+            ? (persistedState as Partial<AuthStore>)
+            : {};
+
+        return {
+          ...currentState,
+          user: persisted.user ?? currentState.user,
+          token: persisted.token ?? currentState.token,
+          selectedServiceId:
+            persisted.selectedServiceId ?? currentState.selectedServiceId,
+          sidebarCollapsed:
+            persisted.sidebarCollapsed ?? currentState.sidebarCollapsed,
+        };
+      },
       partialize: (state) => ({
-        formData: state.formData,
-        currentStep: state.currentStep,
         user: state.user,
         token: state.token,
+        selectedServiceId: state.selectedServiceId,
+        sidebarCollapsed: state.sidebarCollapsed,
       }),
     },
   ),

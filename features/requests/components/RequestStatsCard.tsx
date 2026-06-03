@@ -1,28 +1,19 @@
 import type { LucideIcon } from "lucide-react";
-import { cn } from "@/utils/cn";
 
 interface RequestStatsCardProps {
   title: string;
   value: string;
-  trend: string;
   helper: string;
   icon: LucideIcon;
-  tone: "positive" | "warning" | "danger";
-}
 
-const toneClasses = {
-  positive: "bg-[#eafff4] text-[#07a86d]",
-  warning: "bg-[#fff8df] text-[#b77900]",
-  danger: "bg-[#ffe8ed] text-brand-red",
-};
+}
 
 export function RequestStatsCard({
   title,
   value,
-  trend,
   helper,
   icon: Icon,
-  tone,
+
 }: RequestStatsCardProps) {
   return (
     <section className="group rounded-xl border border-[#eef0f3] bg-white p-5 shadow-card transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_16px_34px_rgba(24,28,36,0.08)] dark:border-white/10 dark:bg-[#1b1d22]">
@@ -39,14 +30,7 @@ export function RequestStatsCard({
           {value}
         </p>
         <div className="text-right">
-          <span
-            className={cn(
-              "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold",
-              toneClasses[tone],
-            )}
-          >
-            {trend}
-          </span>
+          
           <p className="mt-1 text-[10px] font-semibold text-[#7a828f] dark:text-white/50">
             {helper}
           </p>

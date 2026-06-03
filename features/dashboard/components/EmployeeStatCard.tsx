@@ -33,7 +33,6 @@ export function EmployeeStatCard({
   title,
   value,
   helper,
-  trend,
   icon: Icon,
   tone,
 }: EmployeeStatCardProps) {
@@ -57,14 +56,6 @@ export function EmployeeStatCard({
           {value}
         </p>
         <div className="text-right">
-          <span
-            className={cn(
-              "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold",
-              toneClasses[tone].trend,
-            )}
-          >
-            {trend}
-          </span>
           <p className="mt-1 text-[10px] font-semibold text-[#7a828f] dark:text-white/50">
             {helper}
           </p>
