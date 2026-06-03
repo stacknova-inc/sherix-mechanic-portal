@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowRight, Eye, LockKeyhole, Mail } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-import { signIn } from "@/services/auth-service";
+import { persistAuthToken, signIn } from "@/services/auth-service";
 import { getApiErrorDetails } from "@/services/api-error";
 import { useToast } from "@/hooks/use-toast";
 import { isCompanyAdmin, useAuthStore } from "@/store/auth-store";
@@ -23,8 +24,25 @@ type LoginValues = z.infer<typeof loginSchema>;
 
 export function SignInForm() {
   const router = useRouter();
-  const { loading, logout, setLoading, setUser, setError } = useAuthStore();
+  const {
+    hasHydrated,
+    loading,
+    logout,
+    setLoading,
+    setUser,
+    setError,
+    token,
+    user,
+  } = useAuthStore();
   const { toast } = useToast();
+  const isAuthenticated = Boolean(user && token && isCompanyAdmin(user));
+
+  useEffect(() => {
+    if (hasHydrated && isAuthenticated && token) {
+      persistAuthToken(token);
+      router.replace("/dashboard");
+    }
+  }, [hasHydrated, isAuthenticated, router, token]);
 
   const {
     register,
@@ -68,7 +86,7 @@ export function SignInForm() {
         role: response.user.role,
       });
 
-      router.push("/dashboard");
+      router.replace("/dashboard");
     } catch (error) {
       const details = getApiErrorDetails(
         error,
@@ -92,6 +110,14 @@ export function SignInForm() {
       setLoading(false);
     }
   };
+
+  if (!hasHydrated || isAuthenticated) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#f4f6f8] text-brand-dark dark:bg-[#121419] dark:text-white">
+        <span className="size-5 animate-spin rounded-full border-2 border-brand-red/25 border-t-brand-red" />
+      </main>
+    );
+  }
 
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#f4f6f8] px-5 py-5 dark:bg-[#121419]">
@@ -202,7 +228,7 @@ export function SignInForm() {
 
         <p className="mt-5 text-[11px] font-medium text-[#5f6876] dark:text-white/60">
           Don&apos;t have an account?{" "}
-          <Link href="/" className="font-extrabold text-brand-red">
+          <Link href="/sign-up" className="font-extrabold text-brand-red">
             Sign up
           </Link>
         </p>

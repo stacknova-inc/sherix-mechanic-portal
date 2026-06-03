@@ -1,4 +1,5 @@
 import { apiClient } from "@/services/http-client";
+import { API_BASE_URL } from "@/services/api-config";
 import type {
   CreateEmployeeInput,
   Employee,
@@ -32,11 +33,11 @@ type BackendEmployee = {
   levelOfExperience?: ExperienceLevel;
   level_of_experience?: ExperienceLevel;
   experienceLevel?: ExperienceLevel;
-  profilePhoto?: string | null;
-  profile_photo?: string | null;
-  profilePhotoUrl?: string | null;
-  profile_photo_url?: string | null;
-  services?: Array<string | BackendEmployeeService>;
+  profilePhoto?: unknown;
+  profile_photo?: unknown;
+  profilePhotoUrl?: unknown;
+  profile_photo_url?: unknown;
+  services?: unknown;
   status?: string;
   isActive?: boolean;
   deactivatedAt?: string | null;
@@ -87,12 +88,107 @@ function normalizeEmployeeService(
   };
 }
 
+function normalizeEmployeeServices(services: unknown): EmployeeServiceSummary[] {
+  if (!Array.isArray(services)) {
+    return [];
+  }
+
+  return services
+    .filter(
+      (service): service is string | BackendEmployeeService =>
+        typeof service === "string" ||
+        (Boolean(service) && typeof service === "object"),
+    )
+    .map(normalizeEmployeeService)
+    .filter((service) => Boolean(service.id || service.name));
+}
+
+function normalizeEmployeeStatus(
+  status: string | undefined,
+  isActive: boolean,
+): Employee["status"] {
+  const normalizedStatus = status?.trim().toUpperCase().replace(/[\s-]+/g, "_");
+
+  if (normalizedStatus === "SUSPENDED") {
+    return "SUSPENDED";
+  }
+
+  if (normalizedStatus === "INACTIVE" || normalizedStatus === "OFFLINE") {
+    return "INACTIVE";
+  }
+
+  if (normalizedStatus === "ACTIVE" || normalizedStatus === "AVAILABLE" || normalizedStatus === "ON_JOB") {
+    return "ACTIVE";
+  }
+
+  return isActive ? "ACTIVE" : "INACTIVE";
+}
+
+function extractProfilePhotoUrl(value: unknown): string | null {
+  if (!value) {
+    return null;
+  }
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const url = extractProfilePhotoUrl(item);
+
+      if (url) {
+        return url;
+      }
+    }
+
+    return null;
+  }
+
+  if (typeof value === "object") {
+    const photo = value as Record<string, unknown>;
+
+    return (
+      extractProfilePhotoUrl(photo.url) ??
+      extractProfilePhotoUrl(photo.secure_url) ??
+      extractProfilePhotoUrl(photo.href) ??
+      extractProfilePhotoUrl(photo.path) ??
+      extractProfilePhotoUrl(photo.location) ??
+      extractProfilePhotoUrl(photo.Location) ??
+      extractProfilePhotoUrl(photo.key) ??
+      null
+    );
+  }
+
+  return null;
+}
+
+function normalizeProfilePhotoUrl(value: unknown): string | null {
+  const url = extractProfilePhotoUrl(value);
+
+  if (!url) {
+    return null;
+  }
+
+  const normalizedUrl = url.replace(/\\/g, "/");
+
+  if (/^(https?:|data:|blob:)/i.test(normalizedUrl)) {
+    return normalizedUrl;
+  }
+
+  try {
+    return new URL(normalizedUrl, API_BASE_URL).toString();
+  } catch {
+    return normalizedUrl;
+  }
+}
+
 function normalizeEmployee(employee: BackendEmployee): Employee {
   const id = employee._id ?? employee.id ?? "";
   const name = employee.name ?? employee.fullName ?? employee.full_name ?? "Unnamed employee";
-  const services = (employee.services ?? []).map(normalizeEmployeeService);
+  const services = normalizeEmployeeServices(employee.services);
   const isActive = employee.isActive ?? !employee.deactivatedAt;
-  const status = !isActive ? "SUSPENDED" : (employee.status as Employee["status"]) ?? "AVAILABLE";
+  const status = normalizeEmployeeStatus(employee.status, isActive);
   const createdAt = employee.createdAt ?? new Date().toISOString();
 
   return {
@@ -114,12 +210,13 @@ function normalizeEmployee(employee: BackendEmployee): Employee {
       employee.level_of_experience ??
       employee.experienceLevel ??
       "1-3 years",
-    profilePhotoUrl:
+    profilePhotoUrl: normalizeProfilePhotoUrl(
       employee.profilePhotoUrl ??
       employee.profile_photo_url ??
       employee.profilePhoto ??
       employee.profile_photo ??
       null,
+    ),
     status,
     isActive,
     jobsCompleted: employee.jobsCompleted ?? 0,
@@ -212,7 +309,7 @@ function buildEmployeeFormData(
 export async function getEmployees(
   params: EmployeeListParams = {},
 ): Promise<PaginatedEmployees> {
-  const response = await apiClient.get<BackendEmployeesResponse>("/employees/", {
+  const response = await apiClient.get<BackendEmployeesResponse>("/employees", {
     params: {
       page: params.page,
       limit: params.limit,
@@ -274,25 +371,29 @@ export async function reactivateEmployee(employeeId: string): Promise<Employee> 
   return normalizeEmployeeResponse(response.data);
 }
 
+export async function deleteEmployee(employeeId: string): Promise<void> {
+  await apiClient.delete(`/employees/${employeeId}`);
+}
+
 export function getEmployeeStats(employees: Employee[]): EmployeeStats {
   return employees.reduce<EmployeeStats>(
     (stats, employee) => {
       stats.total += 1;
 
-      if (employee.status === "AVAILABLE") {
-        stats.available += 1;
+      if (employee.status === "ACTIVE") {
+        stats.active += 1;
       }
 
-      if (employee.status === "ON_JOB") {
-        stats.onJob += 1;
+      if (employee.status === "INACTIVE") {
+        stats.inactive += 1;
       }
 
-      if (employee.status === "OFFLINE" || employee.status === "SUSPENDED") {
-        stats.offline += 1;
+      if (employee.status === "SUSPENDED") {
+        stats.suspended += 1;
       }
 
       return stats;
     },
-    { total: 0, available: 0, onJob: 0, offline: 0 },
+    { total: 0, active: 0, inactive: 0, suspended: 0 },
   );
 }

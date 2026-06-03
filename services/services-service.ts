@@ -24,6 +24,15 @@ type BackendServicesResponse =
       results?: BackendService[];
     };
 
+function normalizeServiceList(services: unknown): BackendService[] {
+  return Array.isArray(services)
+    ? services.filter(
+        (service): service is BackendService =>
+          Boolean(service) && typeof service === "object",
+      )
+    : [];
+}
+
 export async function getPublicServices(): Promise<PublicService[]> {
   console.info("[Services] Services request started");
   const response = await apiClient.get<unknown>("/services/active-services");
@@ -51,17 +60,24 @@ function normalizeServiceOption(service: BackendService): ServiceOption | null {
   };
 }
 
-function normalizeServicesResponse(response: BackendServicesResponse): ServiceOption[] {
+function normalizeServicesResponse(
+  response: BackendServicesResponse | null | undefined,
+): ServiceOption[] {
+  if (!response) {
+    return [];
+  }
+
   const rawServices = Array.isArray(response)
-    ? response
+    ? normalizeServiceList(response)
     : Array.isArray(response.data)
-      ? response.data
-      : response.data?.companyServices ??
-        response.data?.services ??
-        response.companyServices ??
-        response.services ??
-        response.results ??
-        [];
+      ? normalizeServiceList(response.data)
+      : normalizeServiceList(
+          response.data?.companyServices ??
+            response.data?.services ??
+            response.companyServices ??
+            response.services ??
+            response.results,
+        );
 
   return rawServices
     .map(normalizeServiceOption)

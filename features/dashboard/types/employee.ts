@@ -1,4 +1,4 @@
-export type EmployeeStatus = "AVAILABLE" | "ON_JOB" | "OFFLINE" | "SUSPENDED";
+export type EmployeeStatus = "ACTIVE" | "INACTIVE" | "SUSPENDED";
 
 export type ExperienceLevel =
   | "1-3 years"
@@ -66,9 +66,9 @@ export type UpdateEmployeeInput = Omit<EmployeeFormValues, "profilePhoto"> & {
 
 export interface EmployeeStats {
   total: number;
-  available: number;
-  onJob: number;
-  offline: number;
+  active: number;
+  inactive: number;
+  suspended: number;
 }
 
 export interface EmployeeFilters {

@@ -22,9 +22,8 @@ export const EXPERIENCE_LEVELS: ExperienceLevel[] = [
 ];
 
 export const EMPLOYEE_STATUSES: EmployeeStatus[] = [
-  "AVAILABLE",
-  "ON_JOB",
-  "OFFLINE",
+  "ACTIVE",
+  "INACTIVE",
   "SUSPENDED",
 ];
 

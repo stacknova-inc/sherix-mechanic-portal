@@ -10,6 +10,7 @@ import { getApiErrorDetails } from "@/services/api-error";
 import { apiClient } from "@/services/http-client";
 
 const AUTH_TOKEN_STORAGE_KEY = "sherix-auth-token";
+export const AUTH_TOKEN_COOKIE_KEY = "sherix-auth-token";
 const SERVICE_ID_PATTERN = /^[a-f0-9]{24}$/i;
 const WORKING_HOURS_PATTERN = /^(?:[1-9]|1\d|2[0-4])$/;
 
@@ -226,12 +227,16 @@ function normalizeAuthResponse(
 export function persistAuthToken(token: string) {
   if (typeof window !== "undefined") {
     window.localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
+    document.cookie = `${AUTH_TOKEN_COOKIE_KEY}=${encodeURIComponent(
+      token,
+    )}; path=/; max-age=${60 * 60 * 24 * 7}; samesite=lax`;
   }
 }
 
 export function clearPersistedAuthToken() {
   if (typeof window !== "undefined") {
     window.localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+    document.cookie = `${AUTH_TOKEN_COOKIE_KEY}=; path=/; max-age=0; samesite=lax`;
   }
 }
 
@@ -286,7 +291,7 @@ export async function verifySignupEmail(token: string): Promise<BackendMessageRe
   });
 
   const response = await apiClient.post<BackendMessageResponse>(
-    "company-onboarding/verify-email",
+    "/company-onboarding/verify-email",
     { token },
   );
 
@@ -306,7 +311,7 @@ export async function resendSignupVerification(
   });
 
   const response = await apiClient.post<BackendMessageResponse>(
-    "company-onboarding/resend-verification",
+    "/company-onboarding/resend-verification",
     { business_email: businessEmail.trim() },
   );
 
@@ -329,7 +334,7 @@ export async function signIn(
   });
 
   try {
-    const response = await apiClient.post<BackendAuthResponse>("auth/login", {
+    const response = await apiClient.post<BackendAuthResponse>("/auth/login", {
       email: credentials.email.trim(),
       password: credentials.password,
     });
