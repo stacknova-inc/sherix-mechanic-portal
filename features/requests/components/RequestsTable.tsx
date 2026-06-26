@@ -1,7 +1,6 @@
 "use client";
 
 import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight } from "lucide-react";
-import { RequestActionsDropdown } from "@/features/requests/components/RequestActionsDropdown";
 import { StatusBadge } from "@/features/requests/components/StatusBadge";
 import type { AdminRequest, RequestSortKey } from "@/features/requests/types";
 import { cn } from "@/utils/cn";
@@ -58,7 +57,7 @@ function LoadingSkeleton() {
     <>
       {Array.from({ length: 6 }).map((_, index) => (
         <tr key={index} className="border-t border-[#f3f5f7]">
-          {Array.from({ length: 10 }).map((__, cellIndex) => (
+          {Array.from({ length: 9 }).map((__, cellIndex) => (
             <td key={cellIndex} className="px-5 py-5">
               <div className="h-4 animate-pulse rounded-full bg-[#eef0f3] dark:bg-white/10" />
             </td>
@@ -103,7 +102,7 @@ export function RequestsTable({
       </div>
 
       <div className="hidden overflow-x-auto md:block">
-        <table className="w-full min-w-[1120px] border-collapse text-left text-sm">
+        <table className="w-full min-w-[1000px] border-collapse text-left text-sm">
           <thead className="sticky top-0 z-10 bg-white dark:bg-[#1b1d22]">
             <tr className="text-[11px] font-extrabold uppercase text-[#8a929e]">
               <th className="px-5 py-5">
@@ -132,14 +131,13 @@ export function RequestsTable({
                   </button>
                 </th>
               ))}
-              <th className="px-5 py-5 text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? <LoadingSkeleton /> : null}
             {!isLoading && errorMessage ? (
               <tr>
-                <td colSpan={10} className="px-5 py-16 text-center">
+                <td colSpan={9} className="px-5 py-16 text-center">
                   <p className="text-base font-extrabold text-brand-red">
                     {errorMessage}
                   </p>
@@ -151,7 +149,7 @@ export function RequestsTable({
             ) : null}
             {!isLoading && !errorMessage && requests.length === 0 ? (
               <tr>
-                <td colSpan={10} className="px-5 py-16 text-center">
+                <td colSpan={9} className="px-5 py-16 text-center">
                   <p className="text-base font-extrabold text-brand-dark dark:text-white">
                     No requests found
                   </p>
@@ -212,11 +210,6 @@ export function RequestsTable({
                     <td className="px-5 py-4 text-[#596170] dark:text-white/65">
                       {request.assignedTo}
                     </td>
-                    <td className="px-5 py-4">
-                      <div className="flex justify-end">
-                        <RequestActionsDropdown />
-                      </div>
-                    </td>
                   </tr>
                 ))
               : null}
@@ -260,16 +253,13 @@ export function RequestsTable({
                     className="mt-1 size-4 rounded border-[#dfe3e9] accent-brand-red"
                   />
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-xs font-extrabold text-[#8f96a3]">
-                          {request.id}
-                        </p>
-                        <h3 className="mt-1 text-base font-extrabold text-brand-dark dark:text-white">
-                          {request.employeeName}
-                        </h3>
-                      </div>
-                      <RequestActionsDropdown />
+                    <div>
+                      <p className="text-xs font-extrabold text-[#8f96a3]">
+                        {request.id}
+                      </p>
+                      <h3 className="mt-1 text-base font-extrabold text-brand-dark dark:text-white">
+                        {request.employeeName}
+                      </h3>
                     </div>
                     <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
                       <span>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Edit2, MoreVertical, Trash2, UserX } from "lucide-react";
+import { Edit2, Eye, MoreVertical, Trash2, UserCheck, UserX } from "lucide-react";
 import { EmptyState } from "@/features/dashboard/components/EmptyState";
 import { DEFAULT_EMPLOYEE_AVATAR } from "@/features/dashboard/constants/employee-options";
 import type { Employee } from "@/features/dashboard/types/employee";
@@ -15,8 +15,10 @@ import {
 interface EmployeeTableProps {
   employees: Employee[];
   isLoading?: boolean;
+  onView: (employee: Employee) => void;
   onDelete: (employee: Employee) => void;
   onDeactivate: (employee: Employee) => void;
+  onActivate: (employee: Employee) => void;
   onEdit: (employee: Employee) => void;
 }
 
@@ -43,8 +45,10 @@ function EmployeeTableSkeleton() {
 export function EmployeeTable({
   employees,
   isLoading = false,
+  onView,
   onDelete,
   onDeactivate,
+  onActivate,
   onEdit,
 }: EmployeeTableProps) {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
@@ -173,6 +177,17 @@ export function EmployeeTable({
                       type="button"
                       onClick={() => {
                         setOpenMenu(null);
+                        onView(employee);
+                      }}
+                      className="flex w-full items-center gap-2 border-b border-gray-200 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:border-white/10 dark:text-white/70 dark:hover:bg-white/10"
+                    >
+                      <Eye size={16} />
+                      View Employee
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOpenMenu(null);
                         onEdit(employee);
                       }}
                       className="flex w-full items-center gap-2 border-b border-gray-200 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:border-white/10 dark:text-white/70 dark:hover:bg-white/10"
@@ -180,6 +195,19 @@ export function EmployeeTable({
                       <Edit2 size={16} />
                       Edit Employee
                     </button>
+                    {employee.status !== "ACTIVE" ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOpenMenu(null);
+                          onActivate(employee);
+                        }}
+                        className="flex w-full items-center gap-2 border-b border-gray-200 px-4 py-2 text-sm text-green-600 hover:bg-green-50 dark:border-white/10 dark:hover:bg-green-500/10"
+                      >
+                        <UserCheck size={16} />
+                        Activate Employee
+                      </button>
+                    ) : null}
                     {employee.status === "SUSPENDED" ? (
                       <button
                         type="button"
