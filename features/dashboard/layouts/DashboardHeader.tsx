@@ -12,10 +12,12 @@ import {
 } from "lucide-react";
 import { ThemeToggle } from "@/features/theme/ThemeToggle";
 import { useAuthStore } from "@/store/auth-store";
+import { useNotifications } from "@/features/notifications/hooks/useNotifications";
 
 export function DashboardHeader() {
   const router = useRouter();
   const { logout, user } = useAuthStore();
+  const { unreadCount } = useNotifications();
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
 
@@ -87,7 +89,9 @@ export function DashboardHeader() {
         className="relative flex size-9 items-center justify-center rounded-full border border-[#eef0f3] bg-white text-[#6f7784] transition hover:border-brand-red hover:text-brand-red dark:border-white/10 dark:bg-white/5 dark:text-white/70"
       >
         <Bell className="size-4" />
-        <span className="absolute right-2 top-2 size-2 rounded-full bg-brand-red" />
+        {unreadCount > 0 ? (
+          <span className="absolute right-2 top-2 size-2 rounded-full bg-brand-red" />
+        ) : null}
       </Link>
       
 

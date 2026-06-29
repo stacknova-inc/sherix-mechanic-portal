@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   BriefcaseBusiness,
   CircleOff,
@@ -31,6 +32,7 @@ import type {
 import type { ServiceOption } from "@/types/service";
 
 export function EmployeesPage() {
+  const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [statusAction, setStatusAction] = useState<{
@@ -50,6 +52,7 @@ export function EmployeesPage() {
     totalPages,
     addEmployee,
     deactivateEmployee,
+    reactivateEmployee,
     deleteEmployee,
     error,
     setPage,
@@ -212,12 +215,16 @@ export function EmployeesPage() {
             <EmployeeTable
               employees={filteredEmployees}
               isLoading={isLoading}
+              onView={(employee) => router.push(`/employee/${employee.id}`)}
               onDelete={(employee) =>
                 setStatusAction({ employee, action: "delete" })
               }
               onDeactivate={(employee) =>
                 setStatusAction({ employee, action: "suspend" })
               }
+              onActivate={(employee) => {
+                void reactivateEmployee(employee.id);
+              }}
               onEdit={(employee) => {
                 setEditingEmployee(employee);
                 setIsModalOpen(true);
