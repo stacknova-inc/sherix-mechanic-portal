@@ -1,9 +1,9 @@
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ??
   process.env.NEXT_PUBLIC_AUTH_API_BASE_URL ??
-  "https://sherix-app-backend-production.up.railway.app/api/v1/";
+  "https://sherix-app-backend-production-84b9.up.railway.app/api/v1/";
 
-export const DEVICE_ID = "123";
+export const DEVICE_ID = "12345";
 
 export function normalizeApiBaseUrl(baseUrl = API_BASE_URL): string {
   return baseUrl.replace(/\/+$/, "");
