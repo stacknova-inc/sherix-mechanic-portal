@@ -14,6 +14,6 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavItem[] = [
   { label: "Employees", href: "/employee", icon: UsersRound },
   { label: "Requests", href: "/requests", icon: Zap },
   { label: "Earnings & Payouts", href: "/earnings", icon: WalletCards },
-  { label: "Notifications", href: "/notifications", icon: Bell, badge: "4" },
+  { label: "Notifications", href: "/notifications", icon: Bell },
   { label: "Settings", href: "/settings", icon: Settings },
 ];
