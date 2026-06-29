@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { HelpCircle, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { DASHBOARD_NAV_ITEMS } from "@/features/dashboard/constants/navigation";
 import { useAuthStore } from "@/store/auth-store";
+import { useNotifications } from "@/features/notifications/hooks/useNotifications";
 import { cn } from "@/utils/cn";
 
 function isActiveRoute(pathname: string, href: string): boolean {
@@ -15,6 +16,7 @@ export function DashboardSidebar() {
   const pathname = usePathname();
   const collapsed = useAuthStore((state) => state.sidebarCollapsed);
   const toggleCollapsed = useAuthStore((state) => state.toggleSidebarCollapsed);
+  const { unreadCount } = useNotifications();
 
   return (
     <aside
@@ -56,6 +58,12 @@ export function DashboardSidebar() {
         {DASHBOARD_NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const isActive = isActiveRoute(pathname, item.href);
+          const badge =
+            item.href === "/notifications"
+              ? unreadCount > 0
+                ? String(unreadCount)
+                : undefined
+              : item.badge;
 
           return (
             <Link
@@ -72,7 +80,7 @@ export function DashboardSidebar() {
             >
               <Icon className="size-4" />
               {!collapsed ? <span className="truncate">{item.label}</span> : null}
-              {item.badge ? (
+              {badge ? (
                 <span
                   className={cn(
                     "ml-auto flex size-5 items-center justify-center rounded-full text-[10px]",
@@ -80,7 +88,7 @@ export function DashboardSidebar() {
                     collapsed && "absolute ml-0 translate-x-3 -translate-y-3",
                   )}
                 >
-                  {item.badge}
+                  {badge}
                 </span>
               ) : null}
             </Link>

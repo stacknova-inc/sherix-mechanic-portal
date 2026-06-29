@@ -355,6 +355,14 @@ export async function updateEmployee(
   return normalizeEmployeeResponse(response.data);
 }
 
+export async function getEmployeeById(employeeId: string): Promise<Employee> {
+  const response = await apiClient.get<BackendEmployeeResponse>(
+    `/employees/${employeeId}`,
+  );
+
+  return normalizeEmployeeResponse(response.data);
+}
+
 export async function deactivateEmployee(employeeId: string): Promise<Employee> {
   const response = await apiClient.patch<BackendEmployeeResponse>(
     `/employees/${employeeId}/deactivate`,
