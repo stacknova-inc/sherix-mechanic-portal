@@ -4,7 +4,9 @@ import { Building2, CheckCircle2, FileText, Info, UserRound } from "lucide-react
 import { getServiceNames } from "./service-utils";
 import { useToast } from "@/hooks/use-toast";
 import { submitSignup } from "@/services/auth-service";
-import { isCompanyAdmin, useAuthStore } from "@/store/auth-store";
+import { getApiErrorDetails } from "@/services/api-error";
+import { useAuthStore } from "@/store/auth-store";
+import { useRouter } from "next/navigation";
 
 function displayFile(file: File | null | undefined, fallback: string) {
   return file?.name ?? fallback;
@@ -49,14 +51,13 @@ function SummaryCard({
 }
 
 export function ReviewStep() {
+  const router = useRouter();
   const {
     formData,
     files,
     previousStep,
     loading,
     setLoading,
-    setUser,
-    logout,
     setError,
     setSuccess,
   } = useAuthStore();
@@ -68,15 +69,13 @@ export function ReviewStep() {
       setError(null);
       const { formData: latestFormData, files: latestFiles } = useAuthStore.getState();
       const response = await submitSignup(latestFormData, latestFiles);
-      if (!isCompanyAdmin(response.user)) {
-        logout();
-        throw new Error("Only company admin accounts can access this dashboard.");
-      }
-      setUser(response.user, response.token);
       setSuccess(response.message ?? "Account created successfully.");
       toast({ type: "success", message: response.message ?? "Account created successfully." });
+      router.replace(`/company-onboarding/verify-email?email=${encodeURIComponent(latestFormData.personalEmail.trim())}`);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unable to create account.";
+      // Axios's Error.message is usually just "Request failed with status code …".
+      // Prefer the server's response message, which is what the user can act on.
+      const message = getApiErrorDetails(error, "Unable to create account.").message;
       setError(message);
       toast({ type: "error", message });
     } finally {
@@ -101,9 +100,9 @@ export function ReviewStep() {
           icon={<Building2 className="size-5" />}
           rows={[
             { label: "Company Name", value: formData.companyName },
-            { label: "Business Email", value: formData.businessEmail },
-            { label: "Company Number", value: formData.companyNumber },
+            { label: "Registration Number", value: formData.registrationNumber },
             { label: "Coverage Area", value: formData.coverage_area },
+            { label: "Personnel Count", value: formData.personnelCount },
             {
               label: "Registration Certificate",
               value: displayFile(files.registrationCertificate, "Uploaded"),
@@ -128,18 +127,7 @@ export function ReviewStep() {
           rows={[
             { label: "Full Name", value: formData.fullName },
             { label: "Personal Email", value: formData.personalEmail },
-            {
-              label: "Ghana Card",
-              value: displayFile(files.ghanaCard, "Uploaded"),
-              file: true,
-            },
             { label: "Services", value: getServiceNames(formData.servicesOffered) },
-            { label: "Working Hours", value: formData.workingHours },
-            {
-              label: "Insurance Upload",
-              value: files.insuranceUpload ? displayFile(files.insuranceUpload, "Uploaded") : "Not uploaded",
-              file: Boolean(files.insuranceUpload),
-            },
             {
               label: "Signed Agreement",
               value: formData.signedAgreementAccepted ? "Read and accepted" : "Not accepted",

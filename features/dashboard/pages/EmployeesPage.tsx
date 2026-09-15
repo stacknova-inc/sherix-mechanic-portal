@@ -137,11 +137,6 @@ export function EmployeesPage() {
           </label>
 
           <div className="flex flex-wrap items-center gap-3">
-            <span className="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 dark:border-white/10 dark:text-white/65">
-              <SlidersHorizontal size={16} />
-              Filters
-            </span>
-
             <select
               value={filters.serviceType}
               onChange={(event) =>
@@ -174,28 +169,6 @@ export function EmployeesPage() {
               {EMPLOYEE_STATUSES.map((status) => (
                 <option key={status} value={status}>
                   {status.charAt(0) + status.slice(1).toLowerCase()}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="mt-4 flex items-center justify-end border-t border-gray-200 pt-4 dark:border-white/10">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-700 dark:text-white/60">Sort by:</span>
-            <select
-              value={filters.sortBy}
-              onChange={(event) =>
-                setFilters((currentFilters) => ({
-                  ...currentFilters,
-                  sortBy: event.target.value as EmployeeSortKey,
-                }))
-              }
-              className="rounded-md border border-gray-300 bg-white px-3 py-1 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-red-500 dark:border-white/10 dark:bg-[#202329] dark:text-white"
-            >
-              {EMPLOYEE_SORT_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
                 </option>
               ))}
             </select>

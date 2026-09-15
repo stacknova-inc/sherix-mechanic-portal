@@ -9,10 +9,12 @@ interface ConfirmEmployeeStatusModalProps {
   onClose: () => void;
   onConfirm: () => Promise<void>;
 }
+ 
+
 
 export function ConfirmEmployeeStatusModal({
   employee,
-  action,
+  action, 
   isLoading = false,
   onClose,
   onConfirm,

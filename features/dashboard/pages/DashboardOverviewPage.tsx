@@ -81,7 +81,7 @@ export function DashboardOverviewPage() {
               <CalendarDays className="size-4" />
               {formattedToday}
             </span>
-            {["Today", "This Week", "This Month"].map((tab) => (
+            {["Today"].map((tab) => (
               <button
                 key={tab}
                 className={`h-9 rounded-lg px-5 text-xs font-extrabold ${
