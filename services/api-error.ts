@@ -1,9 +1,9 @@
 import axios from "axios";
 
 type BackendErrorPayload = {
-  message?: string;
-  detail?: string;
-  error?: string;
+  message?: unknown;
+  detail?: unknown;
+  error?: unknown;
   errors?: Array<Record<string, unknown> | string> | Record<string, string[] | string>;
 };
 
@@ -32,6 +32,31 @@ export type ApiErrorDetails = {
   method?: string;
 };
 
+function formatErrorValue(value: unknown): string | undefined {
+  if (typeof value === "string" && value.trim()) {
+    return value.trim();
+  }
+
+  if (Array.isArray(value)) {
+    const messages = value.map(formatErrorValue).filter((message): message is string => Boolean(message));
+    return messages.length ? messages.join(" ") : undefined;
+  }
+
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    const message = formatErrorValue(record.message ?? record.msg ?? record.error ?? record.detail);
+    if (message) return message;
+
+    const values = Object.values(record)
+      .flatMap((entry) => (Array.isArray(entry) ? entry : [entry]))
+      .map(formatErrorValue)
+      .filter((entry): entry is string => Boolean(entry));
+    return values.length ? values.join(" ") : undefined;
+  }
+
+  return undefined;
+}
+
 function getBackendMessage(payload: BackendErrorPayload | undefined): string | undefined {
   const fieldErrors = Array.isArray(payload?.errors)
     ? payload.errors
@@ -53,12 +78,10 @@ function getBackendMessage(payload: BackendErrorPayload | undefined): string | u
       ? Object.values(payload.errors).flat().filter(Boolean)
       : [];
 
-  return (
-    payload?.message ??
-    payload?.detail ??
-    payload?.error ??
-    fieldErrors[0]?.toString()
-  );
+  return formatErrorValue(payload?.message)
+    ?? formatErrorValue(payload?.detail)
+    ?? formatErrorValue(payload?.error)
+    ?? formatErrorValue(fieldErrors[0]);
 }
 
 function classifyByMessage(message: string): ApiFailureReason {

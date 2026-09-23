@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery } from "@tanstack/react-query";
-import { BriefcaseBusiness, Check, Clock3, FileText, LockKeyhole, Mail, X, UserRound } from "lucide-react";
+import { BriefcaseBusiness, Check, FileText, LockKeyhole, Mail, X, UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm, type Resolver } from "react-hook-form";
 import { adminSchema, type AdminFormValues } from "@/features/auth/schemas";
@@ -12,7 +12,7 @@ import { getPublicServices } from "@/services/services-service";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/store/auth-store";
 import { cn } from "@/utils/cn";
-import { TextField, UploadField } from "./FormControls";
+import { TextField } from "./FormControls";
 
 export function AdminProfileStep() {
   const [agreementOpen, setAgreementOpen] = useState(false);
@@ -22,7 +22,7 @@ export function AdminProfileStep() {
     queryFn: getPublicServices,
     staleTime: 5 * 60 * 1000,
   });
-  const { formData, files, setFormData, setFile, nextStep, previousStep } = useAuthStore();
+  const { formData, setFormData, nextStep, previousStep } = useAuthStore();
   const {
     register,
     handleSubmit,
@@ -33,8 +33,6 @@ export function AdminProfileStep() {
     resolver: zodResolver(adminSchema) as Resolver<AdminFormValues>,
     defaultValues: {
       ...formData,
-      ghanaCard: files.ghanaCard ?? undefined,
-      insuranceUpload: files.insuranceUpload ?? undefined,
     },
   });
 
@@ -43,14 +41,9 @@ export function AdminProfileStep() {
       fullName: values.fullName.trim(),
       personalEmail: values.personalEmail.trim(),
       serviceIds: normalizeServiceIds(values.servicesOffered),
-      workingHours: values.workingHours.trim(),
       signedAgreementAccepted: values.signedAgreementAccepted,
       password: values.password ? "[present]" : "[missing]",
       confirmPassword: values.confirmPassword ? "[present]" : "[missing]",
-      files: {
-        ghanaCard: values.ghanaCard.name,
-        adminInsurance: values.insuranceUpload.name,
-      },
     });
     setFormData(values);
     nextStep();
@@ -97,18 +90,6 @@ export function AdminProfileStep() {
         <TextField label="Personal Email" placeholder="john@example.com" icon={Mail} registration={register("personalEmail")} error={errors.personalEmail} />
         <TextField label="Admin Password" placeholder="Enter password" type="password" icon={LockKeyhole} registration={register("password")} error={errors.password} isPassword />
         <TextField label="Confirm Password" placeholder="Confirm password" type="password" icon={LockKeyhole} registration={register("confirmPassword")} error={errors.confirmPassword} isPassword />
-        <UploadField
-          label="ID Upload - Ghana Card"
-          placeholder="Upload Ghana Card"
-          required
-          icon="file"
-          file={files.ghanaCard}
-          error={errors.ghanaCard}
-          onChange={(file) => {
-            setFile("ghanaCard", file);
-            setValue("ghanaCard", file as File, { shouldValidate: true });
-          }}
-        />
         <div className="md:col-span-2">
           <div className="mb-2 flex items-center gap-2">
             <BriefcaseBusiness className="size-[14px] text-[#9ba3ae]" />
@@ -168,19 +149,6 @@ export function AdminProfileStep() {
             <span className="auth-error">{errors.servicesOffered.message}</span>
           ) : null}
         </div>
-        <TextField label="Working Hours" placeholder="8" icon={Clock3} registration={register("workingHours")} error={errors.workingHours} />
-        <UploadField
-          label="Insurance Upload"
-          placeholder="Upload Insurance PDF"
-          required
-          icon="file"
-          file={files.insuranceUpload}
-          error={errors.insuranceUpload}
-          onChange={(file) => {
-            setFile("insuranceUpload", file);
-            setValue("insuranceUpload", file as AdminFormValues["insuranceUpload"], { shouldValidate: true });
-          }}
-        />
       </div>
 
       <label className="mt-6 flex min-h-[70px] items-start gap-3 rounded-[8px] border border-[#eef0f3] bg-[#fafafa] px-4 py-3 dark:border-white/10 dark:bg-white/[0.03]">
@@ -244,7 +212,7 @@ export function AdminProfileStep() {
                 By accepting this agreement, the administrator confirms that the provided business and identity information is accurate and belongs to the company being registered.
               </p>
               <p className="mb-3">
-                The administrator is responsible for maintaining correct service information, working hours, uploaded documents, and account access credentials.
+                The administrator is responsible for maintaining correct service information, uploaded documents, and account access credentials.
               </p>
               <p className="mb-3">
                 Uploaded documents may be reviewed for verification before the account is fully activated. Any false or incomplete information may delay approval.

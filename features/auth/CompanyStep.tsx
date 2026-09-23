@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Building2, Globe2, Mail, Phone } from "lucide-react";
+import { Building2, Globe2, Hash, Users } from "lucide-react";
 import { useForm, type Resolver } from "react-hook-form";
 import { companySchema, type CompanyFormValues } from "@/features/auth/schemas";
 import { useAuthStore } from "@/store/auth-store";
@@ -27,9 +27,9 @@ export function CompanyStep() {
   const onSubmit = (values: CompanyFormValues) => {
     console.info("[Auth][Signup][CompanyStep] Step submitted", {
       companyName: values.companyName.trim(),
-      businessEmail: values.businessEmail.trim(),
-      companyNumber: values.companyNumber.trim(),
+      registrationNumber: values.registrationNumber.trim(),
       coverageArea: values.coverage_area.trim(),
+      personnelCount: values.personnelCount.trim(),
       files: {
         registrationCertificate: values.registrationCertificate.name,
         garageProof: values.garageProof.name,
@@ -53,9 +53,9 @@ export function CompanyStep() {
 
       <div className="grid grid-cols-1 gap-x-5 gap-y-5 md:grid-cols-2">
         <TextField label="Company Name" placeholder="e.g. Acme Corp" required icon={Building2} registration={register("companyName")} error={errors.companyName} />
-        <TextField label="Business Email" placeholder="name@company.com" required icon={Mail} registration={register("businessEmail")} error={errors.businessEmail} />
-        <TextField label="Company Number" placeholder="+1 (555) 000-0000" required icon={Phone} registration={register("companyNumber")} error={errors.companyNumber} />
+        <TextField label="Registration Number" placeholder="e.g. RC-123456" required icon={Hash} registration={register("registrationNumber")} error={errors.registrationNumber} />
         <TextField label="Coverage Area" placeholder="e.g. Greater Accra" required icon={Globe2} registration={register("coverage_area")} error={errors.coverage_area} />
+        <TextField label="Personnel Count" placeholder="e.g. 20" type="number" required icon={Users} registration={register("personnelCount")} error={errors.personnelCount} />
       </div>
 
       <div className="mt-5 grid grid-cols-1 gap-x-5 gap-y-5 md:grid-cols-2">

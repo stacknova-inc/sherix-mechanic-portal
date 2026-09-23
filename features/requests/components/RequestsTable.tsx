@@ -96,24 +96,14 @@ export function RequestsTable({
             {selectedIds.length ? `${selectedIds.length} selected` : "Live operational view"}
           </p>
         </div>
-        <button className="h-9 rounded-lg border border-[#eef0f3] px-4 text-xs font-extrabold text-[#6f7784] transition hover:border-brand-red hover:text-brand-red dark:border-white/10 dark:text-white/70">
-          Bulk action
-        </button>
+       
       </div>
 
       <div className="hidden overflow-x-auto md:block">
         <table className="w-full min-w-[1000px] border-collapse text-left text-sm">
           <thead className="sticky top-0 z-10 bg-white dark:bg-[#1b1d22]">
             <tr className="text-[11px] font-extrabold uppercase text-[#8a929e]">
-              <th className="px-5 py-5">
-                <input
-                  aria-label="Select all requests"
-                  checked={allSelected}
-                  onChange={onToggleAll}
-                  type="checkbox"
-                  className="size-4 rounded border-[#dfe3e9] accent-brand-red"
-                />
-              </th>
+              
               {columns.map((column) => (
                 <th key={column.key} className="px-5 py-5">
                   <button
@@ -165,15 +155,7 @@ export function RequestsTable({
                     key={request.id}
                     className="border-t border-[#f3f5f7] transition hover:bg-[#fbfcfd] dark:border-white/10 dark:hover:bg-white/[0.03]"
                   >
-                    <td className="px-5 py-4">
-                      <input
-                        aria-label={`Select ${request.id}`}
-                        checked={selectedIds.includes(request.id)}
-                        onChange={() => onToggleRow(request.id)}
-                        type="checkbox"
-                        className="size-4 rounded border-[#dfe3e9] accent-brand-red"
-                      />
-                    </td>
+                    
                     <td className="px-5 py-4 font-semibold text-brand-dark dark:text-white">
                       {request.id}
                     </td>

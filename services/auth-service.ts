@@ -12,7 +12,7 @@ import { apiClient } from "@/services/http-client";
 const AUTH_TOKEN_STORAGE_KEY = "sherix-auth-token";
 export const AUTH_TOKEN_COOKIE_KEY = "sherix-auth-token";
 const SERVICE_ID_PATTERN = /^[a-f0-9]{24}$/i;
-const WORKING_HOURS_PATTERN = /^(?:[1-9]|1\d|2[0-4])$/;
+const PERSONNEL_COUNT_PATTERN = /^[1-9]\d*$/;
 
 type BackendAuthResponse = {
   token?: string;
@@ -41,6 +41,9 @@ type BackendMessageResponse = {
 type BackendUser = Partial<AuthUser> & {
   fullName?: string;
   personalEmail?: string;
+  verification_status?: string;
+  company_verification_status?: string;
+  company?: { verification_status?: string; status?: string; rejection_reason?: string };
 };
 
 function getFileDebug(file: File | null | undefined) {
@@ -60,13 +63,12 @@ function getFileDebug(file: File | null | undefined) {
 function getSignupDebugSummary(data: SignupFormData, files: SignupFiles) {
   return {
     companyName: data.companyName.trim(),
-    businessEmail: data.businessEmail.trim(),
-    companyNumber: data.companyNumber.trim(),
+    registrationNumber: data.registrationNumber.trim(),
     coverageArea: data.coverage_area.trim(),
+    personnelCount: data.personnelCount.trim(),
     fullName: data.fullName.trim(),
     personalEmail: data.personalEmail.trim(),
     serviceIds: normalizeServiceIds(data.servicesOffered),
-    workingHours: data.workingHours.trim(),
     termsAccepted: data.signedAgreementAccepted,
     password: data.password ? "[present]" : "[missing]",
     confirmPassword: data.confirmPassword ? "[present]" : "[missing]",
@@ -74,8 +76,6 @@ function getSignupDebugSummary(data: SignupFormData, files: SignupFiles) {
       registration_certificate: getFileDebug(files.registrationCertificate),
       proof_of_address: getFileDebug(files.garageProof),
       business_insurance: getFileDebug(files.businessInsurance),
-      ghana_card: getFileDebug(files.ghanaCard),
-      admin_insurance: getFileDebug(files.insuranceUpload),
     },
   };
 }
@@ -137,51 +137,48 @@ function getValidServiceIds(servicesOffered: SignupFormData["servicesOffered"]) 
   return Array.from(new Set(serviceIds));
 }
 
-function getValidWorkingHours(workingHours: string) {
-  const normalizedWorkingHours = workingHours.trim();
+function getValidPersonnelCount(personnelCount: string) {
+  const normalizedPersonnelCount = personnelCount.trim();
 
-  if (!WORKING_HOURS_PATTERN.test(normalizedWorkingHours)) {
-    throw new Error("Working hours must be a number from 1 to 24.");
+  if (!PERSONNEL_COUNT_PATTERN.test(normalizedPersonnelCount)) {
+    throw new Error("Personnel count must be a positive whole number.");
   }
 
-  return normalizedWorkingHours;
+  return normalizedPersonnelCount;
 }
 
 export function buildSignupPayload(data: SignupFormData, files: SignupFiles) {
   const formData = new FormData();
   const serviceIds = getValidServiceIds(data.servicesOffered);
-  const workingHours = getValidWorkingHours(data.workingHours);
+  const personnelCount = getValidPersonnelCount(data.personnelCount);
 
   if (!data.signedAgreementAccepted) {
     throw new Error("You must accept the terms before creating an account.");
   }
 
   formData.append("company_name", data.companyName.trim());
-  formData.append("business_email", data.businessEmail.trim());
-  formData.append("company_number", data.companyNumber.trim());
+  formData.append("registration_number", data.registrationNumber.trim());
   formData.append("coverage_area", data.coverage_area.trim());
+  formData.append("personnel_count", personnelCount);
 
   serviceIds.forEach((serviceId) => {
     formData.append("services", serviceId);
   });
 
-  formData.append("full_name", data.fullName.trim());
-  formData.append("personal_email", data.personalEmail.trim());
+  formData.append("admin_full_name", data.fullName.trim());
+  formData.append("admin_personal_email", data.personalEmail.trim());
   formData.append("password", data.password);
   formData.append("confirm_password", data.confirmPassword);
-  formData.append("working_hours", workingHours);
   formData.append("terms_accepted", "true");
 
   appendRequiredFile(formData, "registration_certificate", files.registrationCertificate);
   appendRequiredFile(formData, "proof_of_address", files.garageProof);
   appendRequiredFile(formData, "business_insurance", files.businessInsurance);
-  appendRequiredFile(formData, "ghana_card", files.ghanaCard);
-  appendRequiredFile(formData, "admin_insurance", files.insuranceUpload);
 
   return formData;
 }
 
-function getToken(response: BackendAuthResponse): string {
+function getToken(response: BackendAuthResponse): string | undefined {
   const token =
     response.token ??
     response.access_token ??
@@ -190,11 +187,15 @@ function getToken(response: BackendAuthResponse): string {
     response.data?.access_token ??
     response.data?.accessToken;
 
-  if (!token) {
-    throw new Error("Authentication succeeded but no token was returned.");
-  }
-
   return token;
+}
+
+function normalizeVerificationStatus(value: unknown): AuthUser["companyVerificationStatus"] {
+  const normalized = typeof value === "string" ? value.trim().toLowerCase() : "";
+  if (["approved", "verified", "active"].includes(normalized)) return "approved";
+  if (["pending", "under_review", "submitted", "unverified"].includes(normalized)) return "pending";
+  if (["rejected", "declined", "failed"].includes(normalized)) return "rejected";
+  return "unknown";
 }
 
 function normalizeUser(
@@ -205,11 +206,20 @@ function normalizeUser(
     | BackendUser
     | undefined;
 
+  const status = normalizeVerificationStatus(
+    backendUser?.company_verification_status ??
+      backendUser?.verification_status ??
+      backendUser?.company?.verification_status ??
+      backendUser?.company?.status,
+  );
+
   return {
     id: backendUser?.id,
     name: backendUser?.name ?? backendUser?.fullName ?? fallback.name,
     email: backendUser?.email ?? backendUser?.personalEmail ?? fallback.email,
     role: backendUser?.role,
+    companyVerificationStatus: status,
+    companyVerificationReason: backendUser?.company?.rejection_reason,
   };
 }
 
@@ -217,8 +227,12 @@ function normalizeAuthResponse(
   response: BackendAuthResponse,
   fallbackUser: Pick<AuthUser, "name" | "email">,
 ): AuthResponse {
+  const token = getToken(response);
+  if (!token && !response.message) {
+    throw new Error("Authentication response did not include a session or confirmation message.");
+  }
   return {
-    token: getToken(response),
+    token,
     user: normalizeUser(response, fallbackUser),
     message: response.message,
   };
@@ -272,8 +286,7 @@ export async function submitSignup(
       email: data.personalEmail,
     });
 
-    persistAuthToken(authResponse.token);
-    console.info("[Auth][Signup][4] Signup auth token persisted", {
+    console.info("[Auth][Signup][4] Signup submitted; session is intentionally not persisted before email verification", {
       userEmail: authResponse.user.email,
       userRole: authResponse.user.role,
     });
@@ -304,15 +317,15 @@ export async function verifySignupEmail(token: string): Promise<BackendMessageRe
 }
 
 export async function resendSignupVerification(
-  businessEmail: string,
+  personalEmail: string,
 ): Promise<BackendMessageResponse> {
   console.info("[Auth][VerifyEmail] Resending signup verification email", {
-    businessEmail: businessEmail.trim(),
+    personalEmail: personalEmail.trim(),
   });
 
   const response = await apiClient.post<BackendMessageResponse>(
     "/company-onboarding/resend-verification",
-    { business_email: businessEmail.trim() },
+    { admin_personal_email: personalEmail.trim() },
   );
 
   console.info("[Auth][VerifyEmail] Resend response received", {
@@ -356,8 +369,7 @@ export async function signIn(
       email: credentials.email.trim(),
     });
 
-    persistAuthToken(authResponse.token);
-    console.info("[Auth][Login][3] Login auth token persisted", {
+    console.info("[Auth][Login][3] Login response normalized; UI will persist an approved session", {
       userEmail: authResponse.user.email,
       userRole: authResponse.user.role,
     });

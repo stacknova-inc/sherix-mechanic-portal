@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Geist } from "next/font/google";
 import { ToastProvider } from "@/hooks/use-toast";
 import { AppQueryProvider } from "@/providers/query-provider";
 import { ThemeProvider } from "@/providers/theme-provider";
 import "./globals.css";
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 const themeInitializerScript = `
 (() => {
@@ -31,8 +34,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Sherix Admin Auth",
-  description: "Sherix admin authentication setup"
+  title: "Sherix Mechanic Portal",
+  description: "Sherix mechanic portal for managing your earnings, payouts, and performance.",
 };
 
 export default function RootLayout({
@@ -41,7 +44,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={cn("font-sans", geist.variable)}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitializerScript }} />
       </head>

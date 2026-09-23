@@ -1,5 +1,6 @@
-import { DashboardPlaceholderPage } from "@/features/dashboard/pages/DashboardPlaceholderPage";
+import EarningsPage from "@/features/dashboard/pages/EarningsPage";
 
-export default function EarningsPage() {
-  return <DashboardPlaceholderPage page="earnings" />;
+
+export default function EarningsRoutePage() {
+  return <EarningsPage />;
 }

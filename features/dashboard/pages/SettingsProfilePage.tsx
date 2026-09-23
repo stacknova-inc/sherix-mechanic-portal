@@ -3,12 +3,13 @@
 import {
   BriefcaseBusiness,
   CheckCircle2,
-  Clock3,
   FileText,
+  Hash,
   LockKeyhole,
   Mail,
   ShieldCheck,
   UserRound,
+  Users,
 } from "lucide-react";
 import { getServiceNames, normalizeServiceIds } from "../../../features/auth/service-utils";
 import { PageHeader } from "@/features/dashboard/components/PageHeader";
@@ -89,10 +90,8 @@ export function SettingsProfilePage() {
   const servicesOffered = normalizeServiceIds(formData.servicesOffered).length
     ? getServiceNames(formData.servicesOffered)
     : "Express Delivery, Heavy Cargo";
-  const workingHours = valueOrFallback(
-    formData.workingHours,
-    "Mon - Sat | 08:00 AM - 09:00 PM",
-  );
+  const registrationNumber = valueOrFallback(formData.registrationNumber, "Not provided");
+  const personnelCount = valueOrFallback(formData.personnelCount, "Not provided");
 
   return (
     <DashboardShell>
@@ -103,7 +102,7 @@ export function SettingsProfilePage() {
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
         <aside className="rounded-[8px] border border-[#edf0f3] bg-white p-3 shadow-card dark:border-white/10 dark:bg-[#1b1d22]">
-          <nav className="space-y-1">
+          <nav className="space-y-3">
             {settingsSections.map((section) => {
               const active = section === "My Profile";
 
@@ -122,7 +121,7 @@ export function SettingsProfilePage() {
               );
             })}
           </nav>
-          <button className="mt-5 flex h-10 w-full items-center rounded-lg px-4 text-left text-[12px] font-extrabold text-brand-red transition hover:bg-[#fff4f6]">
+          <button className=" flex h-10 w-full items-center rounded-lg px-4 text-left text-[12px] font-extrabold text-brand-red transition hover:bg-[#fff4f6]">
             Delete Account
           </button>
         </aside>
@@ -190,9 +189,14 @@ export function SettingsProfilePage() {
                 icon={<BriefcaseBusiness className="size-4" />}
               />
               <DetailItem
-                label="Working Hours"
-                value={workingHours}
-                icon={<Clock3 className="size-4" />}
+                label="Registration Number"
+                value={registrationNumber}
+                icon={<Hash className="size-4" />}
+              />
+              <DetailItem
+                label="Personnel Count"
+                value={personnelCount}
+                icon={<Users className="size-4" />}
               />
             </div>
           </ProfileSection>
@@ -200,13 +204,18 @@ export function SettingsProfilePage() {
           <ProfileSection title="Verification Documents">
             <div className="grid gap-x-10 gap-y-6 md:grid-cols-2">
               <DetailItem
-                label="Ghana Card"
-                value={fileName(files.ghanaCard, "Not uploaded")}
+                label="Registration Certificate"
+                value={fileName(files.registrationCertificate, "Not uploaded")}
                 icon={<FileText className="size-4" />}
               />
               <DetailItem
-                label="Insurance Upload"
-                value={fileName(files.insuranceUpload, "Not uploaded")}
+                label="Proof of Garage/Workshop Address"
+                value={fileName(files.garageProof, "Not uploaded")}
+                icon={<FileText className="size-4" />}
+              />
+              <DetailItem
+                label="Business Insurance"
+                value={fileName(files.businessInsurance, "Not uploaded")}
                 icon={<ShieldCheck className="size-4" />}
               />
             </div>

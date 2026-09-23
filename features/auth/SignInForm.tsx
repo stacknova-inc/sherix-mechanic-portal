@@ -11,7 +11,7 @@ import { z } from "zod";
 import { persistAuthToken, signIn } from "@/services/auth-service";
 import { getApiErrorDetails } from "@/services/api-error";
 import { useToast } from "@/hooks/use-toast";
-import { isCompanyAdmin, useAuthStore } from "@/store/auth-store";
+import { isCompanyAdmin, isCompanyApproved, useAuthStore } from "@/store/auth-store";
 import { ThemeToggle } from "@/features/theme/ThemeToggle";
 
 const loginSchema = z.object({
@@ -35,7 +35,7 @@ export function SignInForm() {
     user,
   } = useAuthStore();
   const { toast } = useToast();
-  const isAuthenticated = Boolean(user && token && isCompanyAdmin(user));
+  const isAuthenticated = Boolean(user && token && isCompanyAdmin(user) && isCompanyApproved(user));
 
   useEffect(() => {
     if (hasHydrated && isAuthenticated && token) {
@@ -73,7 +73,18 @@ export function SignInForm() {
         throw new Error("Only company admin accounts can access this dashboard.");
       }
 
+      if (!isCompanyApproved(response.user)) {
+        setUser(response.user, null);
+        router.replace("/company-onboarding/verification-status");
+        return;
+      }
+
+      if (!response.token) {
+        throw new Error("Authentication succeeded but no session token was returned.");
+      }
+
       setUser(response.user, response.token);
+      persistAuthToken(response.token);
       console.info("[Auth][Login] Currently logged in user data", response.user);
 
       toast({

@@ -39,6 +39,7 @@ export function DashboardHeader() {
       ) {
         setProfileMenuOpen(false);
       }
+      
     }
 
     function handleKeyDown(event: KeyboardEvent) {

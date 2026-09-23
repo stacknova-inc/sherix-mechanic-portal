@@ -163,8 +163,13 @@ apiClient.interceptors.request.use((config) => {
   }
 
   if (config.data instanceof FormData) {
-    config.headers.delete("Content-Type");
-    config.headers.delete("content-type");
+    // Must be `false`, not deleted: axios's dispatchRequest force-sets
+    // Content-Type to application/x-www-form-urlencoded on POST/PUT/PATCH
+    // whenever no Content-Type key exists at all, which corrupts the
+    // multipart boundary. Setting it to `false` keeps the key present
+    // (protecting it from that override) while omitting the header so the
+    // browser can set its own multipart/form-data boundary.
+    config.headers.set("Content-Type", false);
   } else if (config.data !== undefined) {
     config.headers.set("Content-Type", "application/json");
   }
