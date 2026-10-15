@@ -3,7 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Upload } from "lucide-react";
-import { ServicesMultiSelect } from "./ServicesMultiSelect";
+import { OptionsMultiSelect } from "@/features/dashboard/components/OptionsMultiSelect";
+import { useCompanyIssues } from "@/features/dashboard/hooks/useCompanyIssues";
+import { useServices } from "@/features/dashboard/hooks/useServices";
+import { getAvailableIssues, pruneIssueIds } from "@/features/dashboard/utils/employee-issues";
 import {
   DEFAULT_EMPLOYEE_AVATAR,
   EXPERIENCE_LEVELS,
@@ -28,6 +31,7 @@ function getDefaultValues(employee?: Employee | null): EmployeeFormValues {
     dateOfBirth: employee?.dateOfBirth ?? "",
     levelOfExperience: employee?.levelOfExperience ?? employee?.experienceLevel ?? "1-3 years",
     serviceIds: employee?.services?.map((service) => service.id).filter(Boolean) ?? [],
+    issueIds: employee?.issues.map((issue) => issue.id).filter(Boolean) ?? [],
     profilePhoto: null,
   };
 }
@@ -45,15 +49,25 @@ export function EmployeeForm({
   const {
     control,
     formState: { errors },
+    getValues,
     handleSubmit,
     register,
     reset,
+    setValue,
     watch,
   } = useForm<EmployeeFormValues>({
     defaultValues,
   });
+  const servicesQuery = useServices();
+  const issuesQuery = useCompanyIssues();
+  const issues = useMemo(() => issuesQuery.data ?? [], [issuesQuery.data]);
 
   const profilePhoto = watch("profilePhoto");
+  const selectedServiceIds = watch("serviceIds");
+  const availableIssues = useMemo(
+    () => getAvailableIssues(issues, selectedServiceIds),
+    [issues, selectedServiceIds],
+  );
 
   useEffect(() => {
     reset(defaultValues);
@@ -202,11 +216,11 @@ export function EmployeeForm({
         </div>
       </div>
 
-      <div className="mb-6 grid gap-4 md:grid-cols-2">
+      <div className="mb-4 grid gap-4 md:grid-cols-2">
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-white/70">
+          <p id="employee-services-label" className="mb-1 block text-sm font-medium text-gray-700 dark:text-white/70">
             Services <span className="text-red-600">*</span>
-          </label>
+          </p>
           <Controller
             control={control}
             name="serviceIds"
@@ -215,21 +229,73 @@ export function EmployeeForm({
                 serviceIds.length > 0 || "Select at least one service.",
             }}
             render={({ field }) => (
-              <ServicesMultiSelect
-                selectedServiceIds={field.value}
-                onChange={field.onChange}
+              <OptionsMultiSelect
+                labelId="employee-services-label"
+                noun="services"
+                options={servicesQuery.data ?? []}
+                isLoading={servicesQuery.isLoading}
+                isError={servicesQuery.isError}
+                selectedIds={field.value}
+                onChange={(serviceIds) => {
+                  field.onChange(serviceIds);
+                  setValue("issueIds", pruneIssueIds(getValues("issueIds"), issues, serviceIds), {
+                    shouldValidate: Boolean(errors.issueIds),
+                  });
+                }}
                 disabled={isSubmitting}
                 hasError={Boolean(errors.serviceIds)}
+                describedBy={errors.serviceIds ? "employee-services-error" : undefined}
               />
             )}
           />
           {errors.serviceIds ? (
-            <p className="mt-1 text-sm text-red-600">
+            <p id="employee-services-error" className="mt-1 text-sm text-red-600">
               {errors.serviceIds.message}
             </p>
           ) : null}
         </div>
 
+        <div>
+          <p id="employee-issues-label" className="mb-1 block text-sm font-medium text-gray-700 dark:text-white/70">
+            Issues handled <span className="text-red-600">*</span>
+          </p>
+          <Controller
+            control={control}
+            name="issueIds"
+            rules={{
+              validate: (issueIds) => issueIds.length > 0 || "Select at least one issue.",
+            }}
+            render={({ field }) => (
+              <OptionsMultiSelect
+                labelId="employee-issues-label"
+                noun="issues"
+                options={availableIssues}
+                isLoading={issuesQuery.isLoading}
+                isError={issuesQuery.isError}
+                emptyMessage="No issues are available for the selected services."
+                selectedIds={field.value}
+                onChange={field.onChange}
+                disabled={isSubmitting || selectedServiceIds.length === 0}
+                hasError={Boolean(errors.issueIds)}
+                describedBy={errors.issueIds ? "employee-issues-error" : "employee-issues-help"}
+              />
+            )}
+          />
+          {errors.issueIds ? (
+            <p id="employee-issues-error" className="mt-1 text-sm text-red-600">
+              {errors.issueIds.message}
+            </p>
+          ) : (
+            <p id="employee-issues-help" className="mt-1 text-xs text-gray-500 dark:text-white/45">
+              {selectedServiceIds.length === 0
+                ? "Select services first to choose the issues this employee handles."
+                : "Only issues for the selected services are listed."}
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="mb-6 grid gap-4 md:grid-cols-2">
         <div>
           <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-white/70">
             Date of Birth <span className="text-red-600">*</span>

@@ -2,10 +2,11 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { getEmployeeById } from "@/features/dashboard/services/employee-service";
+import { employeesRootQueryKey } from "@/features/dashboard/utils/employee-cache";
 import { isCompanyAdmin, useAuthStore } from "@/store/auth-store";
 
 export const employeeQueryKey = (employeeId: string) =>
-  ["employees", "detail", employeeId] as const;
+  [...employeesRootQueryKey, "detail", employeeId] as const;
 
 export function useEmployee(employeeId: string) {
   const { hasHydrated, token, user } = useAuthStore();

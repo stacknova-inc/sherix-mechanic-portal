@@ -27,9 +27,6 @@ select {
   font: inherit;
 }
 
-/* =========================
-   THEME VARIABLES (LIGHT)
-========================= */
 @layer base {
   :root {
     --background: oklch(1 0 0);
@@ -61,7 +58,6 @@ select {
     --radius: 0.625rem;
   }
 
-  /* DARK MODE */
   .dark {
     --background: oklch(0.145 0 0);
     --foreground: oklch(0.985 0 0);
@@ -100,9 +96,6 @@ select {
   }
 }
 
-/* =========================
-   COMPONENTS
-========================= */
 @layer components {
   .auth-input {
     @apply h-[40px] w-full rounded-[8px] border border-[#dfe3e9] bg-white pl-9 pr-3 text-[12px] font-medium text-brand-dark outline-none transition placeholder:text-[#9ba3ae] focus:border-brand-red focus:ring-4 focus:ring-red-50 dark:border-white/10 dark:bg-[#202329] dark:text-white dark:placeholder:text-white/35 dark:focus:ring-red-950/30;

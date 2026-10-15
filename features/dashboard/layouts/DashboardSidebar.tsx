@@ -3,20 +3,19 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { HelpCircle, PanelLeftClose, PanelLeftOpen } from "lucide-react";
-import { DASHBOARD_NAV_ITEMS } from "@/features/dashboard/constants/navigation";
+import { DASHBOARD_NAV_ITEMS, isActiveRoute } from "@/features/dashboard/constants/navigation";
 import { useAuthStore } from "@/store/auth-store";
-import { useNotifications } from "@/features/notifications/hooks/useNotifications";
+import {
+  NOTIFICATION_PREVIEW_PARAMS,
+  useNotifications,
+} from "@/features/notifications/hooks/useNotifications";
 import { cn } from "@/utils/cn";
-
-function isActiveRoute(pathname: string, href: string): boolean {
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
 
 export function DashboardSidebar() {
   const pathname = usePathname();
   const collapsed = useAuthStore((state) => state.sidebarCollapsed);
   const toggleCollapsed = useAuthStore((state) => state.toggleSidebarCollapsed);
-  const { unreadCount } = useNotifications();
+  const { unreadCount } = useNotifications(NOTIFICATION_PREVIEW_PARAMS);
 
   return (
     <aside
@@ -69,6 +68,7 @@ export function DashboardSidebar() {
             <Link
               key={item.href}
               href={item.href}
+              aria-current={isActive ? "page" : undefined}
               title={collapsed ? item.label : undefined}
               className={cn(
                 "flex h-10 items-center gap-3 rounded-lg text-[13px] font-extrabold transition",
@@ -111,9 +111,12 @@ export function DashboardSidebar() {
               Support Center
             </p>
             <p className="mt-1 text-[10px] text-[#8f96a3]">Need assistance?</p>
-            <button className="mt-4 h-9 w-full rounded-lg bg-white text-xs font-extrabold text-[#424956] transition hover:text-brand-red dark:bg-white/10 dark:text-white">
+            <Link
+              href="/support"
+              className="mt-4 flex h-9 w-full items-center justify-center rounded-lg bg-white text-xs font-extrabold text-[#424956] transition hover:text-brand-red focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-red dark:bg-white/10 dark:text-white"
+            >
               Contact Help
-            </button>
+            </Link>
           </>
         ) : null}
       </section>

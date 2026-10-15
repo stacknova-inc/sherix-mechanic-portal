@@ -1,10 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import { ConfirmEmployeeStatusModal } from "@/features/dashboard/components/ConfirmEmployeeStatusModal";
 import { DEFAULT_EMPLOYEE_AVATAR } from "@/features/dashboard/constants/employee-options";
 import { DashboardShell } from "@/features/dashboard/layouts/DashboardShell";
 import { useEmployee } from "@/features/dashboard/hooks/useEmployee";
+import { useEmployeeStatus } from "@/features/dashboard/hooks/useEmployeeStatus";
 import {
   formatDate,
   formatEmployeeStatus,
@@ -32,6 +35,8 @@ function DetailItem({ label, value }: { label: string; value: string }) {
 export function EmployeeDetailsPage({ employeeId }: EmployeeDetailsPageProps) {
   const router = useRouter();
   const { employee, isLoading, isError, error } = useEmployee(employeeId);
+  const { deactivateEmployee, reactivateEmployee, isUpdatingStatus } = useEmployeeStatus();
+  const [confirmSuspend, setConfirmSuspend] = useState(false);
 
   return (
     <DashboardShell>
@@ -74,13 +79,34 @@ export function EmployeeDetailsPage({ employeeId }: EmployeeDetailsPageProps) {
                   </p>
                 </div>
               </div>
-              <span
-                className={`inline-block w-fit rounded-full px-3 py-1 text-xs font-semibold ${getEmployeeStatusClasses(
-                  employee.status,
-                )}`}
-              >
-                {formatEmployeeStatus(employee.status)}
-              </span>
+              <div className="flex flex-wrap items-center gap-3">
+                <span
+                  className={`inline-block w-fit rounded-full px-3 py-1 text-xs font-semibold ${getEmployeeStatusClasses(
+                    employee.status,
+                  )}`}
+                >
+                  {formatEmployeeStatus(employee.status)}
+                </span>
+                {employee.status === "ACTIVE" ? (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmSuspend(true)}
+                    disabled={isUpdatingStatus}
+                    className="rounded-md border border-amber-300 px-4 py-1.5 text-sm font-bold text-amber-700 hover:bg-amber-50 disabled:opacity-50 dark:border-amber-500/40 dark:text-amber-300 dark:hover:bg-amber-500/10"
+                  >
+                    Suspend
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => void reactivateEmployee(employee.id).catch(() => undefined)}
+                    disabled={isUpdatingStatus}
+                    className="rounded-md bg-emerald-600 px-4 py-1.5 text-sm font-bold text-white hover:bg-emerald-700 disabled:opacity-50"
+                  >
+                    {isUpdatingStatus ? "Saving..." : "Reactivate"}
+                  </button>
+                )}
+              </div>
             </div>
           </section>
 
@@ -92,7 +118,7 @@ export function EmployeeDetailsPage({ employeeId }: EmployeeDetailsPageProps) {
               <DetailItem label="Phone Number" value={employee.phoneNumber || "N/A"} />
               <DetailItem label="Date of Birth" value={formatDate(employee.dateOfBirth) ?? "N/A"} />
               <DetailItem label="Experience Level" value={employee.experienceLevel} />
-              <DetailItem label="Jobs Completed" value={String(employee.jobsCompleted)} />
+              <DetailItem label="Service Requests Completed" value={String(employee.jobsCompleted)} />
               <DetailItem label="Onboarded" value={formatDate(employee.onboardedDate) ?? "N/A"} />
               <DetailItem
                 label="Last Updated"
@@ -130,8 +156,49 @@ export function EmployeeDetailsPage({ employeeId }: EmployeeDetailsPageProps) {
               </div>
             )}
           </section>
+
+          <section className="rounded-lg border border-[#eef0f3] bg-white p-6 shadow-card dark:border-white/10 dark:bg-[#1b1d22]">
+            <h2 className="text-lg font-extrabold text-brand-dark dark:text-white">
+              Issues Handled
+            </h2>
+            {employee.issues.length === 0 ? (
+              <p className="mt-3 text-sm text-[#6f7784] dark:text-white/55">
+                No issues assigned.
+              </p>
+            ) : (
+              <ul className="mt-4 flex flex-wrap gap-2">
+                {employee.issues.map((issue) => (
+                  <li
+                    key={issue.id}
+                    className="rounded bg-[#f4f5f7] px-3 py-1 text-sm font-medium text-[#343a45] dark:bg-white/10 dark:text-white/80"
+                  >
+                    {issue.name}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
         </div>
       )}
+
+      <ConfirmEmployeeStatusModal
+        employee={confirmSuspend ? employee ?? null : null}
+        action={confirmSuspend ? "suspend" : null}
+        isLoading={isUpdatingStatus}
+        onClose={() => setConfirmSuspend(false)}
+        onConfirm={async () => {
+          if (!employee) {
+            return;
+          }
+
+          try {
+            await deactivateEmployee(employee.id);
+            setConfirmSuspend(false);
+          } catch {
+            // useEmployeeStatus shows the error toast and restores the cache.
+          }
+        }}
+      />
     </DashboardShell>
   );
 }

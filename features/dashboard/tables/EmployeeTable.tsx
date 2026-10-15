@@ -78,7 +78,7 @@ export function EmployeeTable({
               "Email",
               "Specialization",
               "Status",
-              "Jobs",
+              "Service Requests Completed",
               "Actions",
             ].map(
               (heading) => (

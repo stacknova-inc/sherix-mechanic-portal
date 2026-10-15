@@ -4,20 +4,20 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
-  Bell,
   Grid2X2,
+  HelpCircle,
   LogOut,
   Search,
   UserRound,
 } from "lucide-react";
 import { ThemeToggle } from "@/features/theme/ThemeToggle";
 import { useAuthStore } from "@/store/auth-store";
-import { useNotifications } from "@/features/notifications/hooks/useNotifications";
+import { NotificationsMenu } from "@/features/notifications/components/NotificationsMenu";
+import { MobileNavMenu } from "@/features/dashboard/layouts/MobileNavMenu";
 
 export function DashboardHeader() {
   const router = useRouter();
   const { logout, user } = useAuthStore();
-  const { unreadCount } = useNotifications();
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
 
@@ -65,6 +65,8 @@ export function DashboardHeader() {
 
   return (
     <header className="sticky top-0 z-20 flex h-16 items-center gap-4 border-b border-[#eef0f3] bg-white/95 px-5 backdrop-blur transition-colors dark:border-white/10 dark:bg-[#17191f]/95 md:px-8">
+      <MobileNavMenu />
+
       <Link
         href="/dashboard"
         className="flex items-center gap-2 text-[22px] font-extrabold text-brand-red lg:hidden"
@@ -81,19 +83,18 @@ export function DashboardHeader() {
         />
       </label>
 
-      <div className="ml-auto flex justify-between items-center gap-5">
+      <div className="ml-auto flex items-center justify-between gap-2 sm:gap-5">
       <ThemeToggle />
 
       <Link
-        href="/notifications"
-        aria-label="Open notifications"
-        className="relative flex size-9 items-center justify-center rounded-full border border-[#eef0f3] bg-white text-[#6f7784] transition hover:border-brand-red hover:text-brand-red dark:border-white/10 dark:bg-white/5 dark:text-white/70"
+        href="/support"
+        aria-label="Contact support"
+        className="hidden size-9 sm:flex items-center justify-center rounded-full border border-[#eef0f3] bg-white text-[#6f7784] transition hover:border-brand-red hover:text-brand-red dark:border-white/10 dark:bg-white/5 dark:text-white/70"
       >
-        <Bell className="size-4" />
-        {unreadCount > 0 ? (
-          <span className="absolute right-2 top-2 size-2 rounded-full bg-brand-red" />
-        ) : null}
+        <HelpCircle className="size-4" />
       </Link>
+
+      <NotificationsMenu />
       
 
       <div ref={profileMenuRef} className="relative">

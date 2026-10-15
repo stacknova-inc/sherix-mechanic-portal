@@ -11,11 +11,13 @@ import type {
   UpdateEmployeeInput,
 } from "@/features/dashboard/types/employee";
 
-type BackendEmployeeService = {
+/** A populated service or issue reference (or its plain id). */
+type BackendNamedRef = {
   _id?: string;
   id?: string;
   name?: string;
   title?: string;
+  issueTitle?: string;
 };
 
 type BackendEmployee = {
@@ -38,6 +40,7 @@ type BackendEmployee = {
   profilePhotoUrl?: unknown;
   profile_photo_url?: unknown;
   services?: unknown;
+  issues?: unknown;
   status?: string;
   isActive?: boolean;
   deactivatedAt?: string | null;
@@ -75,32 +78,29 @@ type BackendEmployeeResponse =
       employee?: BackendEmployee;
     };
 
-function normalizeEmployeeService(
-  service: string | BackendEmployeeService,
-): EmployeeServiceSummary {
-  if (typeof service === "string") {
-    return { id: service, name: service };
+function normalizeNamedRef(ref: string | BackendNamedRef): EmployeeServiceSummary {
+  if (typeof ref === "string") {
+    return { id: ref, name: ref };
   }
 
   return {
-    id: service._id ?? service.id ?? "",
-    name: service.name ?? service.title ?? "Unnamed service",
+    id: ref._id ?? ref.id ?? "",
+    name: ref.name ?? ref.issueTitle ?? ref.title ?? "Unnamed",
   };
 }
 
-function normalizeEmployeeServices(services: unknown): EmployeeServiceSummary[] {
-  if (!Array.isArray(services)) {
+function normalizeNamedRefs(refs: unknown): EmployeeServiceSummary[] {
+  if (!Array.isArray(refs)) {
     return [];
   }
 
-  return services
+  return refs
     .filter(
-      (service): service is string | BackendEmployeeService =>
-        typeof service === "string" ||
-        (Boolean(service) && typeof service === "object"),
+      (ref): ref is string | BackendNamedRef =>
+        typeof ref === "string" || (Boolean(ref) && typeof ref === "object"),
     )
-    .map(normalizeEmployeeService)
-    .filter((service) => Boolean(service.id || service.name));
+    .map(normalizeNamedRef)
+    .filter((ref) => Boolean(ref.id || ref.name));
 }
 
 function normalizeEmployeeStatus(
@@ -186,7 +186,7 @@ function normalizeProfilePhotoUrl(value: unknown): string | null {
 function normalizeEmployee(employee: BackendEmployee): Employee {
   const id = employee._id ?? employee.id ?? "";
   const name = employee.name ?? employee.fullName ?? employee.full_name ?? "Unnamed employee";
-  const services = normalizeEmployeeServices(employee.services);
+  const services = normalizeNamedRefs(employee.services);
   const isActive = employee.isActive ?? !employee.deactivatedAt;
   const status = normalizeEmployeeStatus(employee.status, isActive);
   const createdAt = employee.createdAt ?? new Date().toISOString();
@@ -199,6 +199,7 @@ function normalizeEmployee(employee: BackendEmployee): Employee {
     email: employee.email ?? null,
     services,
     serviceSpecialties: services.map((service) => service.name),
+    issues: normalizeNamedRefs(employee.issues),
     dateOfBirth: employee.dateOfBirth ?? employee.date_of_birth ?? "",
     levelOfExperience:
       employee.levelOfExperience ??
@@ -282,10 +283,7 @@ function normalizeEmployeesResponse(
   };
 }
 
-function buildEmployeeFormData(
-  input: CreateEmployeeInput | UpdateEmployeeInput,
-  includePhoto: boolean,
-) {
+function buildEmployeeFormData(input: CreateEmployeeInput | UpdateEmployeeInput) {
   const formData = new FormData();
 
   formData.append("name", input.name.trim());
@@ -298,8 +296,13 @@ function buildEmployeeFormData(
     formData.append("services", serviceId);
   });
 
+  input.issueIds.forEach((issueId) => {
+    formData.append("issues", issueId);
+  });
+
+  // On update the photo is optional: only a newly chosen file is sent.
   const photo = input.profilePhoto?.[0];
-  if (includePhoto && photo instanceof File) {
+  if (photo instanceof File) {
     formData.append("profilePhoto", photo);
   }
 
@@ -337,7 +340,7 @@ export async function createEmployee(
 
   const response = await apiClient.post<BackendEmployeeResponse>(
     "/employees",
-    buildEmployeeFormData(input, true),
+    buildEmployeeFormData(input),
   );
 
   return normalizeEmployeeResponse(response.data);
@@ -349,7 +352,7 @@ export async function updateEmployee(
 ): Promise<Employee> {
   const response = await apiClient.put<BackendEmployeeResponse>(
     `/employees/${employeeId}`,
-    buildEmployeeFormData(input, false),
+    buildEmployeeFormData(input),
   );
 
   return normalizeEmployeeResponse(response.data);

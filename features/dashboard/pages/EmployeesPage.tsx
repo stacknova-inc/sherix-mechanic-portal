@@ -64,7 +64,7 @@ export function EmployeesPage() {
     <DashboardShell>
       <PageHeader
         title="Employees"
-        description="Manage your mechanic fleet, track performance, and assign jobs."
+        description="Manage your mechanic fleet, track performance, and assign Service Requests."
         actions={
           <button
             type="button"
@@ -101,7 +101,7 @@ export function EmployeesPage() {
           title="Inactive"
           value={stats.inactive}
           trend=""
-          helper="Not accepting jobs"
+          helper="Not accepting assignments"
           icon={BriefcaseBusiness}
           tone="info"
         />
@@ -196,7 +196,7 @@ export function EmployeesPage() {
                 setStatusAction({ employee, action: "suspend" })
               }
               onActivate={(employee) => {
-                void reactivateEmployee(employee.id);
+                void reactivateEmployee(employee.id).catch(() => undefined);
               }}
               onEdit={(employee) => {
                 setEditingEmployee(employee);
@@ -265,13 +265,17 @@ export function EmployeesPage() {
             return;
           }
 
-          if (statusAction.action === "suspend") {
-            await deactivateEmployee(statusAction.employee.id);
-          } else {
-            await deleteEmployee(statusAction.employee.id);
-          }
+          try {
+            if (statusAction.action === "suspend") {
+              await deactivateEmployee(statusAction.employee.id);
+            } else {
+              await deleteEmployee(statusAction.employee.id);
+            }
 
-          setStatusAction(null);
+            setStatusAction(null);
+          } catch {
+            // The mutation hooks show the error toast and restore the cache.
+          }
         }}
       />
     </DashboardShell>
