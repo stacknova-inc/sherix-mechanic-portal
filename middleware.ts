@@ -9,6 +9,9 @@ const PROTECTED_ROUTE_PREFIXES = [
   "/earnings",
   "/notifications",
   "/settings",
+  "/performance",
+  "/support",
+  "/disputes",
 ];
 
 function isProtectedRoute(pathname: string) {
@@ -44,5 +47,8 @@ export const config = {
     "/earnings/:path*",
     "/notifications/:path*",
     "/settings/:path*",
+    "/performance/:path*",
+    "/support/:path*",
+    "/disputes/:path*",
   ],
 };

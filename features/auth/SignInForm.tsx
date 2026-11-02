@@ -134,7 +134,6 @@ export function SignInForm() {
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#f4f6f8] px-5 py-5 dark:bg-[#121419]">
       <div className="absolute inset-0 bg-[linear-gradient(145deg,#eef1f5_0%,#fff1f3_34%,#ffffff_51%,#f7e8ec_68%,#e9edf3_100%)] dark:bg-[linear-gradient(145deg,#2a1016_0%,#17191f_38%,#121419_62%,#251016_100%)]" />
 
-      {/* Theme Toggle */}
       <div className="absolute right-5 top-5 z-20">
         <ThemeToggle />
       </div>

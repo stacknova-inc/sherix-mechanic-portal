@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { CalendarDays, CheckCircle2, Clock3, UsersRound, Zap } from "lucide-react";
 import { ActiveRequestsTable } from "@/features/dashboard/components/ActiveRequestsTable";
 import { PageHeader } from "@/features/dashboard/components/PageHeader";
@@ -9,22 +8,20 @@ import { StatCard } from "@/features/dashboard/components/StatCard";
 import { useEmployees } from "@/features/dashboard/hooks/useEmployees";
 import { DashboardShell } from "@/features/dashboard/layouts/DashboardShell";
 import { EmployeesOnJobList } from "../components/EmployeesOnJobList";
-import { getAdminBookings } from "@/features/requests/services/bookings-service";
-import { isCompanyAdmin, useAuthStore } from "@/store/auth-store";
+import { useCompanyServiceRequests } from "@/features/requests/hooks/useCompanyServiceRequests";
+import {
+  COMPLETED_STATUS,
+  isAwaitingMechanic,
+  isOpenServiceRequest,
+} from "@/features/requests/utils/service-request-status";
+import { useAuthStore } from "@/store/auth-store";
 
 export function DashboardOverviewPage() {
   const user = useAuthStore((state) => state.user);
-  const hasHydrated = useAuthStore((state) => state.hasHydrated);
-  const token = useAuthStore((state) => state.token);
-  const canFetchDashboard = hasHydrated && Boolean(token && isCompanyAdmin(user));
   const firstName = user?.name?.trim().split(/\s+/)[0] || "Admin";
   const { employees, isLoading: isLoadingEmployees, stats } = useEmployees();
-  const bookingsQuery = useQuery({
-    queryKey: ["company-admin-bookings"],
-    queryFn: getAdminBookings,
-    enabled: canFetchDashboard,
-  });
-  const bookings = bookingsQuery.data ?? [];
+  const requestsQuery = useCompanyServiceRequests();
+  const requests = useMemo(() => requestsQuery.data ?? [], [requestsQuery.data]);
   const formattedToday = useMemo(
     () =>
       new Date().toLocaleDateString("en-US", {
@@ -35,17 +32,13 @@ export function DashboardOverviewPage() {
     [],
   );
   const currentYear = new Date().getFullYear();
-  const activeRequestCount = bookings.filter((booking) =>
-    ["Pending", "In Review", "Approved"].includes(booking.status),
-  ).length;
-  const completedRequestCount = bookings.filter(
-    (booking) => booking.status === "Completed",
-  ).length;
+  const activeRequestCount = requests.filter((request) => isOpenServiceRequest(request.status)).length;
+  const completedRequestCount = requests.filter((request) => request.status === COMPLETED_STATUS).length;
   const overviewStats = [
     {
       label: "Active Requests",
       value: activeRequestCount.toLocaleString(),
-      helper: "Jobs currently live",
+      helper: "Service Requests currently active",
       icon: Zap,
     },
     {
@@ -56,16 +49,14 @@ export function DashboardOverviewPage() {
     },
     {
       label: "Pending Requests",
-      value: bookings
-        .filter((booking) => booking.status === "Pending")
-        .length.toLocaleString(),
-      helper: "Awaiting action",
+      value: requests.filter((request) => isAwaitingMechanic(request.status)).length.toLocaleString(),
+      helper: "Awaiting a mechanic",
       icon: Clock3,
     },
     {
       label: "Completed Requests",
       value: completedRequestCount.toLocaleString(),
-      helper: "Finished bookings",
+      helper: "Finished Service Requests",
       icon: CheckCircle2,
     },
   ];
@@ -111,8 +102,8 @@ export function DashboardOverviewPage() {
 
       <div className="mt-12 grid gap-8 xl:grid-cols-[1fr_440px]">
         <ActiveRequestsTable
-          requests={bookings}
-          isLoading={bookingsQuery.isLoading}
+          requests={requests}
+          isLoading={requestsQuery.isLoading}
         />
         <EmployeesOnJobList
           employees={employees}

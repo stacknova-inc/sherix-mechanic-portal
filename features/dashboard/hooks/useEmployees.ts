@@ -1,22 +1,15 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import {
-  type QueryKey,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { getApiErrorMessage } from "@/services/api-error";
 import { isCompanyAdmin, useAuthStore } from "@/store/auth-store";
 import {
   createEmployee,
-  deactivateEmployee,
   deleteEmployee,
   getEmployees,
   getEmployeeStats,
-  reactivateEmployee,
   updateEmployee,
 } from "@/features/dashboard/services/employee-service";
 import type {
@@ -25,9 +18,16 @@ import type {
   EmployeeFilters,
   EmployeeListParams,
   EmployeeStats,
-  PaginatedEmployees,
   UpdateEmployeeInput,
 } from "@/features/dashboard/types/employee";
+import { useEmployeeStatus } from "@/features/dashboard/hooks/useEmployeeStatus";
+import {
+  employeesRootQueryKey,
+  removeEmployeeFromCaches,
+  restoreEmployeeCaches,
+  snapshotEmployeeCaches,
+  updateEmployeeInCaches,
+} from "@/features/dashboard/utils/employee-cache";
 import { filterAndSortEmployees } from "@/features/dashboard/utils/employee-formatters";
 
 const defaultStats: EmployeeStats = {
@@ -45,23 +45,7 @@ const defaultFilters: EmployeeFilters = {
 };
 
 export const employeesQueryKey = (params: EmployeeListParams) =>
-  ["employees", params] as const;
-
-function updateEmployeeInCache(
-  currentData: PaginatedEmployees | undefined,
-  updatedEmployee: Employee,
-): PaginatedEmployees | undefined {
-  if (!currentData) {
-    return currentData;
-  }
-
-  return {
-    ...currentData,
-    employees: currentData.employees.map((employee) =>
-      employee.id === updatedEmployee.id ? updatedEmployee : employee,
-    ),
-  };
-}
+  [...employeesRootQueryKey, params] as const;
 
 export function useEmployees() {
   const queryClient = useQueryClient();
@@ -101,11 +85,13 @@ export function useEmployees() {
     [employees],
   );
 
+  const { deactivateEmployee, reactivateEmployee, isUpdatingStatus } = useEmployeeStatus();
+
   const createMutation = useMutation({
     mutationFn: (input: CreateEmployeeInput) => createEmployee(input),
     onSuccess: () => {
       toast({ type: "success", message: "Employee created successfully." });
-      void queryClient.invalidateQueries({ queryKey: ["employees"] });
+      void queryClient.invalidateQueries({ queryKey: employeesRootQueryKey });
     },
     onError: (error: unknown) => {
       toast({ type: "error", message: getApiErrorMessage(error) });
@@ -122,76 +108,8 @@ export function useEmployees() {
     }) => updateEmployee(employeeId, input),
     onSuccess: (updatedEmployee: Employee) => {
       toast({ type: "success", message: "Employee updated successfully." });
-      queryClient.setQueriesData<PaginatedEmployees>(
-        { queryKey: ["employees"] },
-        (currentData: PaginatedEmployees | undefined) =>
-          updateEmployeeInCache(currentData, updatedEmployee),
-      );
-      void queryClient.invalidateQueries({ queryKey: ["employees"] });
-    },
-    onError: (error: unknown) => {
-      toast({ type: "error", message: getApiErrorMessage(error) });
-    },
-  });
-
-  const deactivateMutation = useMutation({
-    mutationFn: deactivateEmployee,
-    onMutate: async (employeeId: string) => {
-      await queryClient.cancelQueries({ queryKey: ["employees"] });
-      const previousData = queryClient.getQueriesData<PaginatedEmployees>({
-        queryKey: ["employees"],
-      });
-
-      queryClient.setQueriesData<PaginatedEmployees>(
-        { queryKey: ["employees"] },
-        (currentData: PaginatedEmployees | undefined) => {
-          if (!currentData) {
-            return currentData;
-          }
-
-          return {
-            ...currentData,
-            employees: currentData.employees.map((employee: Employee) =>
-              employee.id === employeeId
-                ? { ...employee, isActive: false, status: "SUSPENDED" }
-                : employee,
-            ),
-          };
-        },
-      );
-
-      return { previousData };
-    },
-    onError: (
-      error: unknown,
-      _employeeId: string,
-      context:
-        | { previousData: Array<[QueryKey, PaginatedEmployees | undefined]> }
-        | undefined,
-    ) => {
-      context?.previousData.forEach(([queryKey, data]) => {
-        queryClient.setQueryData(queryKey, data);
-      });
-      toast({ type: "error", message: getApiErrorMessage(error) });
-    },
-    onSuccess: () => {
-      toast({ type: "success", message: "Employee suspended." });
-    },
-    onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: ["employees"] });
-    },
-  });
-
-  const reactivateMutation = useMutation({
-    mutationFn: reactivateEmployee,
-    onSuccess: (updatedEmployee: Employee) => {
-      toast({ type: "success", message: "Employee reactivated." });
-      queryClient.setQueriesData<PaginatedEmployees>(
-        { queryKey: ["employees"] },
-        (currentData: PaginatedEmployees | undefined) =>
-          updateEmployeeInCache(currentData, updatedEmployee),
-      );
-      void queryClient.invalidateQueries({ queryKey: ["employees"] });
+      updateEmployeeInCaches(queryClient, updatedEmployee.id, () => updatedEmployee);
+      void queryClient.invalidateQueries({ queryKey: employeesRootQueryKey });
     },
     onError: (error: unknown) => {
       toast({ type: "error", message: getApiErrorMessage(error) });
@@ -201,47 +119,19 @@ export function useEmployees() {
   const deleteMutation = useMutation({
     mutationFn: deleteEmployee,
     onMutate: async (employeeId: string) => {
-      await queryClient.cancelQueries({ queryKey: ["employees"] });
-      const previousData = queryClient.getQueriesData<PaginatedEmployees>({
-        queryKey: ["employees"],
-      });
-
-      queryClient.setQueriesData<PaginatedEmployees>(
-        { queryKey: ["employees"] },
-        (currentData: PaginatedEmployees | undefined) => {
-          if (!currentData) {
-            return currentData;
-          }
-
-          return {
-            ...currentData,
-            employees: currentData.employees.filter(
-              (employee: Employee) => employee.id !== employeeId,
-            ),
-            total: Math.max(0, currentData.total - 1),
-          };
-        },
-      );
-
-      return { previousData };
+      const snapshot = await snapshotEmployeeCaches(queryClient);
+      removeEmployeeFromCaches(queryClient, employeeId);
+      return snapshot;
     },
-    onError: (
-      error: unknown,
-      _employeeId: string,
-      context:
-        | { previousData: Array<[QueryKey, PaginatedEmployees | undefined]> }
-        | undefined,
-    ) => {
-      context?.previousData.forEach(([queryKey, data]) => {
-        queryClient.setQueryData(queryKey, data);
-      });
+    onError: (error: unknown, _employeeId, snapshot) => {
+      restoreEmployeeCaches(queryClient, snapshot);
       toast({ type: "error", message: getApiErrorMessage(error) });
     },
     onSuccess: () => {
       toast({ type: "success", message: "Employee deleted." });
     },
     onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: ["employees"] });
+      void queryClient.invalidateQueries({ queryKey: employeesRootQueryKey });
     },
   });
 
@@ -256,8 +146,7 @@ export function useEmployees() {
     isSubmitting:
       createMutation.isPending ||
       updateMutation.isPending ||
-      deactivateMutation.isPending ||
-      reactivateMutation.isPending ||
+      isUpdatingStatus ||
       deleteMutation.isPending,
     stats,
     page: paginatedEmployees?.page ?? page,
@@ -265,8 +154,8 @@ export function useEmployees() {
     totalEmployees: paginatedEmployees?.total ?? employees.length,
     addEmployee: createMutation.mutateAsync,
     updateEmployee: updateMutation.mutateAsync,
-    deactivateEmployee: deactivateMutation.mutateAsync,
-    reactivateEmployee: reactivateMutation.mutateAsync,
+    deactivateEmployee,
+    reactivateEmployee,
     deleteEmployee: deleteMutation.mutateAsync,
     setFilters,
     setPage,
