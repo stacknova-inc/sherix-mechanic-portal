@@ -1,53 +1,86 @@
-export type TransactionStatus = "completed" | "pending" | "failed" | "refunded";
-export type PayoutStatus = "pending" | "processing" | "paid" | "failed";
+export type TransactionStatus = string;
+export type PayoutStatus = "pending" | "processing" | "completed" | "paid" | "failed";
 export type PaymentMethod = "card" | "mobile_money" | "cash";
-export type PayoutMethod = "mobile_money" | "bank_transfer";
+export type PayoutMethod = string;
 
 export interface MechanicRef {
   id: string;
   name: string;
+  businessName?: string | null;
 }
 
 
 export interface CommissionBreakdown {
+  headline: string;
+  paymentMethod: string;
+  customerName: string;
+  settledAt: string | null;
+  formattedSettledDate: string;
+  customerPaymentGross: number;
+  formattedCustomerPaymentGross: string;
+  customerFee: number | null;
+  customerFeePercent: number | null;
+  customerFeeLabel: string;
+  platformCommission: number;
+  platformCommissionPercent: number;
+  platformCommissionLabel: string;
+  platformPayout: string;
+  paymentProcessingFee: number;
+  paymentProcessingFeeLabel: string;
+  netAmountToSplit: number;
+  formattedNetAmountToSplit: string;
+  companyShare: number;
+  formattedCompanyShare: string;
+  mechanicShare: number;
+  formattedMechanicShare: string;
+}
+
+export interface LegacyCommissionBreakdown {
   grossAmount: number;
   platformCommissionRate: number;
   platformCommission: number;
   processingFee: number;
   netAmount: number;
   mechanicSharePercent: number;
-  customerFee: number;
-  customerFeeRate: number;
+  mechanicPayout: number;
+  companyShare: number;
 }
 
 export interface CompanyTransaction {
   id: string;
-  reference: string;
-  serviceRequestId: string;
-  serviceRequestRef: string;
-  serviceName: string;
-  customerName: string;
+  transaction: string;
+  transactionId: string;
+  timestamp: string;
+  formattedDate: string;
+  serviceRequest: { id: string; code: string; title: string };
   mechanic: MechanicRef;
-  status: TransactionStatus;
-  paymentMethod: PaymentMethod;
+  status: string;
+  statusCode: TransactionStatus;
+  gross: number;
+  formattedGross: string;
+  companyShare: number;
+  formattedCompanyShare: string;
+  mechanicShare: number;
+  formattedMechanicShare: string;
   currency: string;
-  createdAt: string;
-  settledAt: string | null;
   breakdown: CommissionBreakdown;
 }
 
 export interface PayoutRecord {
   id: string;
-  reference: string;
-  mechanic: MechanicRef;
+  payout: string;
+  payoutId: string;
+  mechanic: string;
+  mechanicId?: string;
+  method: string;
+  requested: string;
+  requestedAt: string;
+  completed: string;
+  completedAt: string | null;
+  status: string;
+  statusCode: PayoutStatus;
   amount: number;
   currency: string;
-  status: PayoutStatus;
-  method: PayoutMethod;
-  initiatedAt: string;
-  completedAt: string | null;
-  failureReason: string | null;
-  transactionIds: string[];
 }
 
 export interface AmountWithCount {
@@ -68,6 +101,41 @@ export interface EarningsSummary {
   outstandingBalance: number;
 }
 
+export interface FinancialPeriod {
+  key: string;
+  label: string;
+  start: string;
+  end: string;
+}
+
+export interface FinancialStat {
+  amount: number;
+  formatted: string;
+  label: string;
+}
+
+export interface PayoutStatistics {
+  currency: string;
+  period: FinancialPeriod;
+  totalPayouts: FinancialStat;
+  pendingPayouts: FinancialStat;
+  successfulPayouts: FinancialStat;
+  failedPayouts: FinancialStat;
+}
+
+export interface CompanyEarningsStatistics {
+  currency: string;
+  period: FinancialPeriod;
+  totalEarnings: FinancialStat & { currency: string };
+  outstandingBalance: FinancialStat & { currency: string };
+}
+
+export interface FinancialStatsParams {
+  range?: "7D" | "30D" | "90D";
+  fromDate?: string;
+  toDate?: string;
+}
+
 export interface PeriodParams {
   from?: string;
   to?: string;
@@ -80,7 +148,7 @@ export interface TransactionListParams extends PeriodParams {
 }
 
 export interface PayoutListParams extends PeriodParams {
-  status?: PayoutStatus | "";
+  status?: PayoutStatus | "all";
   page?: number;
   limit?: number;
 }

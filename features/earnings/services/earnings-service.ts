@@ -1,64 +1,85 @@
 import type {
-  EarningsSummary,
+  CompanyEarningsStatistics,
+  FinancialPeriod,
+  FinancialStat,
+  FinancialStatsParams,
   Paginated,
   PayoutListParams,
   PayoutRecord,
-  PeriodParams,
+  PayoutStatistics,
   TransactionListParams,
   CompanyTransaction,
 } from "@/features/earnings/types";
-import { SAMPLE_PAYOUTS, SAMPLE_TRANSACTIONS } from "@/features/earnings/mocks/earnings-sample";
-import { isWithinDateRange } from "@/features/requests/utils/service-request-filters";
-import { mockRequest, paginateMock } from "@/mocks/mock-request";
-import { SAMPLE_CURRENCY, roundMoney } from "@/mocks/sample-data";
+import { apiClient } from "@/services/http-client";
 
-function inPeriod(value: string, period: PeriodParams) {
-  return isWithinDateRange(value, period.from ?? "", period.to ?? "");
+function financialQueryParams(params: FinancialStatsParams, defaultRange: "7D" | "30D" | "90D") {
+  if (params.fromDate || params.toDate) {
+    if (!params.fromDate || !params.toDate) {
+      throw new Error("Choose both a start date and an end date for a custom range.");
+    }
+    return { fromDate: params.fromDate, toDate: params.toDate };
+  }
+  return { range: params.range ?? defaultRange };
 }
 
-function sumBy<T>(items: T[], getValue: (item: T) => number) {
-  return roundMoney(items.reduce((sum, item) => sum + getValue(item), 0));
+function hasFinancialPeriod(value: unknown): value is FinancialPeriod {
+  if (!value || typeof value !== "object") return false;
+  const period = value as Record<string, unknown>;
+  return typeof period.key === "string" && typeof period.label === "string" && typeof period.start === "string" && typeof period.end === "string";
 }
 
-/**
- * TODO: connect to backend — expected endpoint: GET /company/earnings/summary
- * Query: from?: YYYY-MM-DD, to?: YYYY-MM-DD (inclusive, company timezone)
- * Response: {
- *   currency: "GHS",
- *   period: { from, to },
- *   totalEarnings: number,                         // company share of completed transactions
- *   pendingPayouts:   { amount: number, count: number },  // status pending | processing
- *   completedPayouts: { amount: number, count: number },  // status paid
- *   failedPayouts:    { amount: number, count: number },
- *   outstandingBalance: number                     // company share not yet settled
- * }
- * Totals must be computed server-side and reconcile with /company/earnings/transactions.
- */
-export async function getEarningsSummary(period: PeriodParams = {}): Promise<EarningsSummary> {
-  return mockRequest("earnings", () => {
-    const transactions = SAMPLE_TRANSACTIONS.filter((item) => inPeriod(item.createdAt, period));
-    const payouts = SAMPLE_PAYOUTS.filter((item) => inPeriod(item.initiatedAt, period));
-    const payoutTotals = (statuses: PayoutRecord["status"][]) => {
-      const matching = payouts.filter((payout) => statuses.includes(payout.status));
-      return { amount: sumBy(matching, (payout) => payout.amount), count: matching.length };
-    };
+function hasFinancialStat(value: unknown): value is FinancialStat {
+  if (!value || typeof value !== "object") return false;
+  const stat = value as Record<string, unknown>;
+  return typeof stat.amount === "number" && typeof stat.formatted === "string" && typeof stat.label === "string";
+}
 
-    return {
-      currency: SAMPLE_CURRENCY,
-      period: { from: period.from ?? "", to: period.to ?? "" },
-      totalEarnings: sumBy(
-        transactions.filter((item) => item.status === "completed"),
-        (item) => item.breakdown.companyShare,
-      ),
-      pendingPayouts: payoutTotals(["pending", "processing"]),
-      completedPayouts: payoutTotals(["paid"]),
-      failedPayouts: payoutTotals(["failed"]),
-      outstandingBalance: sumBy(
-        transactions.filter((item) => item.status === "pending"),
-        (item) => item.breakdown.companyShare,
-      ),
-    };
+export async function getPayoutStatistics(params: FinancialStatsParams = {}): Promise<PayoutStatistics> {
+  const response = await apiClient.get<{
+    success: boolean;
+    message: string;
+    data: PayoutStatistics;
+  }>("/payouts/company-admin/stats", {
+    params: financialQueryParams(params, "90D"),
   });
+
+  const data = response.data?.data;
+  if (
+    !response.data?.success ||
+    !data ||
+    typeof data.currency !== "string" ||
+    !hasFinancialPeriod(data.period) ||
+    !hasFinancialStat(data.totalPayouts) ||
+    !hasFinancialStat(data.pendingPayouts) ||
+    !hasFinancialStat(data.successfulPayouts) ||
+    !hasFinancialStat(data.failedPayouts)
+  ) {
+    throw new Error("The payout statistics response was not in the expected format.");
+  }
+  return data;
+}
+
+export async function getCompanyEarningsStatistics(params: FinancialStatsParams = {}): Promise<CompanyEarningsStatistics> {
+  const response = await apiClient.get<{
+    success: boolean;
+    message: string;
+    data: CompanyEarningsStatistics;
+  }>("/financial/company-admin/earnings", {
+    params: financialQueryParams(params, "7D"),
+  });
+
+  const data = response.data?.data;
+  if (
+    !response.data?.success ||
+    !data ||
+    typeof data.currency !== "string" ||
+    !hasFinancialPeriod(data.period) ||
+    !hasFinancialStat(data.totalEarnings) ||
+    !hasFinancialStat(data.outstandingBalance)
+  ) {
+    throw new Error("The earnings statistics response was not in the expected format.");
+  }
+  return data;
 }
 
 /**
@@ -80,32 +101,55 @@ export async function getEarningsSummary(period: PeriodParams = {}): Promise<Ear
 export async function getTransactions(
   params: TransactionListParams = {},
 ): Promise<Paginated<CompanyTransaction>> {
-  return mockRequest("earnings", () => {
-    const filtered = SAMPLE_TRANSACTIONS.filter(
-      (item) => (!params.status || item.status === params.status) && inPeriod(item.createdAt, params),
-    );
-    return paginateMock(filtered, params.page, params.limit);
+  const response = await apiClient.get<{
+    success: boolean;
+    message: string;
+    data: {
+      transactions: CompanyTransaction[];
+      pagination: Paginated<CompanyTransaction>["pagination"];
+    };
+  }>("/financial/company-admin/transactions", {
+    params: { page: params.page ?? 1, limit: params.limit ?? 10 },
   });
+
+  if (!response.data?.success || !Array.isArray(response.data.data?.transactions) || !response.data.data.pagination) {
+    throw new Error("The transaction list response was not in the expected format.");
+  }
+
+  return {
+    data: response.data.data.transactions,
+    pagination: response.data.data.pagination,
+  };
 }
 
 /**
- * TODO: connect to backend — expected endpoint: GET /company/payouts
- * Query: status?: "pending" | "processing" | "paid" | "failed",
- *        from?: YYYY-MM-DD, to?: YYYY-MM-DD, page?: number, limit?: number
- * Response: {
- *   data: [{
- *     id, reference, mechanic: { id, name }, amount, currency,
- *     status, method: "mobile_money" | "bank_transfer",
- *     initiatedAt, completedAt | null, failureReason | null, transactionIds: string[]
- *   }],
- *   pagination: { total, page, limit, pages }
- * }
+ * GET /payouts/company-admin/list
+ * Response: { success, message, data: { payouts: PayoutRecord[], pagination } }
  */
 export async function getPayouts(params: PayoutListParams = {}): Promise<Paginated<PayoutRecord>> {
-  return mockRequest("earnings", () => {
-    const filtered = SAMPLE_PAYOUTS.filter(
-      (item) => (!params.status || item.status === params.status) && inPeriod(item.initiatedAt, params),
-    );
-    return paginateMock(filtered, params.page, params.limit);
+  const response = await apiClient.get<{
+    success: boolean;
+    message: string;
+    data: {
+      payouts: PayoutRecord[];
+      pagination: Paginated<PayoutRecord>["pagination"];
+    };
+  }>("/payouts/company-admin/list", {
+    params: {
+      status: params.status || "all",
+      fromDate: params.from ?? "",
+      toDate: params.to ?? "",
+      page: params.page ?? 1,
+      limit: params.limit ?? 20,
+    },
   });
+
+  if (!response.data?.success || !Array.isArray(response.data.data?.payouts) || !response.data.data.pagination) {
+    throw new Error("The payout list response was not in the expected format.");
+  }
+
+  return {
+    data: response.data.data.payouts,
+    pagination: response.data.data.pagination,
+  };
 }

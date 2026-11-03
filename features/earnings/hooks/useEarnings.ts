@@ -2,20 +2,22 @@
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import {
-  getEarningsSummary,
+  getCompanyEarningsStatistics,
   getPayouts,
+  getPayoutStatistics,
   getTransactions,
 } from "@/features/earnings/services/earnings-service";
 import type {
+  FinancialStatsParams,
   PayoutListParams,
-  PeriodParams,
   TransactionListParams,
 } from "@/features/earnings/types";
 import { isCompanyAdmin, useAuthStore } from "@/store/auth-store";
 
 export const earningsQueryKeys = {
   all: ["earnings"] as const,
-  summary: (period: PeriodParams) => ["earnings", "summary", period] as const,
+  earningsStats: (period: FinancialStatsParams | null) => ["earnings", "statistics", period] as const,
+  payoutStats: (period: FinancialStatsParams | null) => ["earnings", "payout-statistics", period] as const,
   transactions: (params: TransactionListParams) => ["earnings", "transactions", params] as const,
   payouts: (params: PayoutListParams) => ["earnings", "payouts", params] as const,
 };
@@ -25,11 +27,19 @@ function useCanFetch() {
   return hasHydrated && Boolean(token && isCompanyAdmin(user));
 }
 
-export function useEarningsSummary(period: PeriodParams) {
+export function useCompanyEarningsStatistics(period: FinancialStatsParams | null) {
   return useQuery({
-    queryKey: earningsQueryKeys.summary(period),
-    queryFn: () => getEarningsSummary(period),
-    enabled: useCanFetch(),
+    queryKey: earningsQueryKeys.earningsStats(period),
+    queryFn: () => getCompanyEarningsStatistics(period ?? {}),
+    enabled: useCanFetch() && period !== null,
+  });
+}
+
+export function usePayoutStatistics(period: FinancialStatsParams | null) {
+  return useQuery({
+    queryKey: earningsQueryKeys.payoutStats(period),
+    queryFn: () => getPayoutStatistics(period ?? {}),
+    enabled: useCanFetch() && period !== null,
   });
 }
 

@@ -51,16 +51,14 @@ export function PerformanceInsightsSection({
         <div className={cn(query.isPlaceholderData && "opacity-60")} aria-busy={query.isFetching}>
           
 
-          {insights.mechanics.length ? (
-            <div className="border-t border-[#f0f2f5] p-5 dark:border-white/10">
-              <PerformanceTrendCharts
-                trend={insights.trend}
-                currency={insights.currency}
-                bucket={insights.bucket}
-                periodLabel={periodLabel}
-              />
-            </div>
-          ) : null}
+          <div className="border-t border-[#f0f2f5] p-5 dark:border-white/10">
+            <PerformanceTrendCharts
+              trend={insights.trend}
+              currency={insights.currency}
+              bucket={insights.bucket}
+              periodLabel={periodLabel}
+            />
+          </div>
 
           
         </div>
