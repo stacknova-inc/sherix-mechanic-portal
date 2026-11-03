@@ -5,6 +5,7 @@ import type {
   PerformanceTrendPoint,
 } from "@/features/performance/types";
 import { toDateInputValue } from "@/features/requests/utils/service-request-filters";
+import { getTransactions } from "@/features/earnings/services/earnings-service";
 import { mockRequest } from "@/mocks/mock-request";
 import { SAMPLE_CURRENCY, SAMPLE_MECHANICS, createRandom, roundMoney } from "@/mocks/sample-data";
 
@@ -93,7 +94,7 @@ function buildTrend(days: number, mechanics: MechanicQualityMetrics[]): { bucket
  * earnings = mechanic payouts in the period; disputes = disputes opened in the period.
  */
 export async function getPerformanceInsights(params: PerformanceInsightsParams): Promise<PerformanceInsights> {
-  return mockRequest("performance", () => {
+  const sampleInsights = await mockRequest("performance", () => {
     const days = periodDays(params);
     const mechanics = buildMechanicMetrics(days).filter(
       (row) => !params.mechanicId || row.mechanicId === params.mechanicId,
@@ -119,4 +120,45 @@ export async function getPerformanceInsights(params: PerformanceInsightsParams):
       trend: points,
     };
   });
+
+  // Use the settled transaction share associated with each Service Request,
+  // instead of the sample earnings generated for the performance mock.
+  const firstPage = await getTransactions({ page: 1, limit: 100 });
+  const transactions = [...firstPage.data];
+  for (let page = 2; page <= firstPage.pagination.pages; page += 1) {
+    const result = await getTransactions({ page, limit: 100 });
+    transactions.push(...result.data);
+  }
+
+  const from = params.from ? new Date(`${params.from}T00:00:00`) : null;
+  const to = params.to ? new Date(`${params.to}T23:59:59.999`) : null;
+  const days = periodDays(params);
+  const bucket = days <= 31 ? "day" : "week";
+  const bucketDays = bucket === "day" ? 1 : 7;
+  const pointCount = Math.ceil(days / bucketDays);
+  const start = from ?? new Date(Date.now() - (days - 1) * DAY_MS);
+  const points = Array.from({ length: pointCount }, (_, index) => {
+    const date = new Date(start.getTime() + index * bucketDays * DAY_MS);
+    const dateKey = toDateInputValue(date);
+    const sampleRating = sampleInsights.trend.find((point) => point.date === dateKey)?.averageRating ?? null;
+    return { date: dateKey, earnings: 0, averageRating: sampleRating };
+  });
+
+  for (const transaction of transactions) {
+    if (transaction.statusCode !== "completed" || (params.mechanicId && transaction.mechanic.id !== params.mechanicId)) continue;
+    const timestamp = new Date(transaction.timestamp);
+    if (Number.isNaN(timestamp.getTime()) || (from && timestamp < from) || (to && timestamp > to)) continue;
+    const dayOffset = Math.floor((new Date(timestamp.getFullYear(), timestamp.getMonth(), timestamp.getDate()).getTime() - new Date(start.getFullYear(), start.getMonth(), start.getDate()).getTime()) / DAY_MS);
+    const bucketIndex = Math.floor(dayOffset / bucketDays);
+    if (bucketIndex >= 0 && bucketIndex < points.length) {
+      points[bucketIndex].earnings = roundMoney(points[bucketIndex].earnings + transaction.mechanicShare);
+    }
+  }
+
+  return {
+    ...sampleInsights,
+    currency: transactions[0]?.currency ?? sampleInsights.currency,
+    bucket,
+    trend: points,
+  };
 }

@@ -60,7 +60,7 @@ export function PayoutSettingsForm({
       <div className="rounded-xl border border-[#eef0f3] bg-[#fbfcfd] p-4 text-sm text-[#596170] dark:border-white/10 dark:bg-white/[0.02] dark:text-white/65">
         {settings.platform ? (
           <p>
-            Sherix deducts a <strong>{settings.platform.percent}% platform commission</strong>
+            {settings.platform.entity ? `${settings.platform.entity} deducts` : "The platform deducts"} a <strong>{settings.platform.percent}% platform commission</strong>
             {settings.platform.basis ? ` (based on ${settings.platform.basis.replace(/_/g, " ")})` : ""} first
             {settings.platform.editable ? "." : ", which companies can't change."} The split below divides what
             remains between your mechanic and your company.
@@ -71,6 +71,8 @@ export function PayoutSettingsForm({
         <p className="mt-2 text-xs font-semibold">
           Version {settings.version}
           {settings.source ? ` · ${settings.source}` : ""}
+          {settings.platform?.source ? ` · Platform source: ${settings.platform.source}` : ""}
+          {` · ${settings.isOverride ? "Company override" : "Platform default"}`}
           {settings.effectiveFrom ? ` · in effect since ${formatDateTime(settings.effectiveFrom)}` : ""}
         </p>
       </div>

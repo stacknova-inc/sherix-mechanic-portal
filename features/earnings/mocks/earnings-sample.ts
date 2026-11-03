@@ -1,9 +1,4 @@
-import type {
-  CompanyTransaction,
-  PayoutRecord,
-  PaymentMethod,
-  TransactionStatus,
-} from "@/features/earnings/types";
+import type { MechanicRef, PayoutStatus } from "@/features/earnings/types";
 import {
   SAMPLE_CURRENCY,
   SAMPLE_CUSTOMERS,
@@ -14,6 +9,38 @@ import {
   roundMoney,
   sampleServiceRequestRef,
 } from "@/mocks/sample-data";
+
+interface SampleCompanyTransaction {
+  id: string;
+  reference: string;
+  serviceRequestId: string;
+  serviceRequestRef: string;
+  serviceName: string;
+  customerName: string;
+  mechanic: MechanicRef;
+  status: "completed" | "pending" | "failed" | "refunded";
+  paymentMethod: "card" | "mobile_money" | "cash";
+  currency: string;
+  createdAt: string;
+  settledAt: string | null;
+  breakdown: ReturnType<typeof buildBreakdown>;
+}
+
+interface SamplePayout {
+  id: string;
+  reference: string;
+  mechanic: MechanicRef;
+  amount: number;
+  currency: string;
+  status: PayoutStatus;
+  method: string;
+  initiatedAt: string;
+  completedAt: string | null;
+  failureReason: string | null;
+  transactionIds: string[];
+}
+
+type SampleTransactionStatus = "completed" | "pending" | "failed" | "refunded";
 
 /** Sample commission and split rates used to build the earnings sample data. */
 const SAMPLE_PLATFORM_COMMISSION_RATE = 0.15;
@@ -47,7 +74,7 @@ export function buildBreakdown(grossAmount: number, mechanicSharePercent: number
   };
 }
 
-function pickStatus(roll: number, ageDays: number): TransactionStatus {
+function pickStatus(roll: number, ageDays: number): SampleTransactionStatus {
   if (ageDays <= 3 && roll < 0.6) return "pending";
   if (roll < 0.08) return "failed";
   if (roll < 0.13) return "refunded";
@@ -55,9 +82,9 @@ function pickStatus(roll: number, ageDays: number): TransactionStatus {
   return "completed";
 }
 
-function buildTransactions(): CompanyTransaction[] {
+function buildTransactions(): SampleCompanyTransaction[] {
   const random = createRandom(4201);
-  const methods: PaymentMethod[] = ["card", "mobile_money", "mobile_money", "cash"];
+  const methods: SampleCompanyTransaction["paymentMethod"][] = ["card", "mobile_money", "mobile_money", "cash"];
 
   return Array.from({ length: 72 }, (_, index) => {
     const ageDays = Math.floor((index * 95) / 72);
@@ -84,9 +111,9 @@ function buildTransactions(): CompanyTransaction[] {
 }
 
 /** One payout per mechanic per week, built from that week's transactions so totals reconcile. */
-function buildPayouts(transactions: CompanyTransaction[]): PayoutRecord[] {
+function buildPayouts(transactions: SampleCompanyTransaction[]): SamplePayout[] {
   const random = createRandom(977);
-  const groups = new Map<string, CompanyTransaction[]>();
+  const groups = new Map<string, SampleCompanyTransaction[]>();
 
   transactions
     .filter((transaction) => transaction.status === "completed" || transaction.status === "pending")
@@ -115,9 +142,9 @@ function buildPayouts(transactions: CompanyTransaction[]): PayoutRecord[] {
       completedAt: status === "paid" ? daysAgo(Math.max(0, week * 7 - 1), 15) : null,
       failureReason: status === "failed" ? "Recipient mobile money account could not be verified." : null,
       transactionIds: items.map((item) => item.id),
-    } satisfies PayoutRecord;
+    } satisfies SamplePayout;
   }).sort((first, second) => second.initiatedAt.localeCompare(first.initiatedAt));
 }
 
-export const SAMPLE_TRANSACTIONS: CompanyTransaction[] = buildTransactions();
-export const SAMPLE_PAYOUTS: PayoutRecord[] = buildPayouts(SAMPLE_TRANSACTIONS);
+export const SAMPLE_TRANSACTIONS: SampleCompanyTransaction[] = buildTransactions();
+export const SAMPLE_PAYOUTS: SamplePayout[] = buildPayouts(SAMPLE_TRANSACTIONS);

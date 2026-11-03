@@ -5,34 +5,30 @@ import { EmptyState } from "@/features/dashboard/components/EmptyState";
 import { LoadingSkeleton } from "@/features/dashboard/components/LoadingSkeleton";
 import { PaginationControls } from "@/features/dashboard/components/PaginationControls";
 import { QueryErrorState } from "@/features/dashboard/components/QueryErrorState";
-import { SampleDataBadge } from "@/features/dashboard/components/SampleDataBadge";
 import { SectionCard } from "@/features/dashboard/components/SectionCard";
 import { fieldClassName, fieldLabelClassName, secondaryButtonClassName } from "@/features/dashboard/components/form-styles";
 import { usePayouts } from "@/features/earnings/hooks/useEarnings";
 import type { PayoutStatus } from "@/features/earnings/types";
 import { StatusBadge } from "@/features/requests/components/StatusBadge";
-import { formatDate } from "@/lib/date-format";
 import { formatMoney } from "@/lib/money";
 import { cn } from "@/utils/cn";
 
-const PAGE_SIZE = 8;
-const METHOD_LABELS = { mobile_money: "Mobile money", bank_transfer: "Bank transfer" } as const;
+const PAGE_SIZE = 20;
 
 export function PayoutHistory() {
-  const [status, setStatus] = useState<PayoutStatus | "">("");
+  const [status, setStatus] = useState<PayoutStatus | "all">("all");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [page, setPage] = useState(1);
   const query = usePayouts({ status, from, to, page, limit: PAGE_SIZE });
   const payouts = query.data?.data ?? [];
   const pagination = query.data?.pagination;
-  const hasFilters = Boolean(status || from || to);
+  const hasFilters = status !== "all" || Boolean(from || to);
 
   return (
     <SectionCard
       title="Payout history"
-      description="Payout requests sent to your mechanics, including processing dates and outcomes."
-      badge={<SampleDataBadge />}
+      description="Company payout records, including the recipient, payment method, dates, and status."
       flush
       actions={
         <>
@@ -42,15 +38,15 @@ export function PayoutHistory() {
             id="payout-status"
             value={status}
             onChange={(event) => {
-              setStatus(event.target.value as PayoutStatus | "");
+              setStatus(event.target.value as PayoutStatus | "all");
               setPage(1);
             }}
             className={fieldClassName}
           >
-            <option value="">All statuses</option>
+            <option value="all">All statuses</option>
             <option value="pending">Pending</option>
             <option value="processing">Processing</option>
-            <option value="paid">Paid</option>
+            <option value="completed">Paid</option>
             <option value="failed">Failed</option>
           </select>
         </div>
@@ -62,7 +58,7 @@ export function PayoutHistory() {
           <label htmlFor="payout-to" className={fieldLabelClassName}>To date</label>
           <input id="payout-to" type="date" value={to} min={from || undefined} onChange={(event) => { setTo(event.target.value); setPage(1); }} className={fieldClassName} />
         </div>
-        <button type="button" disabled={!hasFilters} onClick={() => { setStatus(""); setFrom(""); setTo(""); setPage(1); }} className={secondaryButtonClassName}>Clear filters</button>
+        <button type="button" disabled={!hasFilters} onClick={() => { setStatus("all"); setFrom(""); setTo(""); setPage(1); }} className={secondaryButtonClassName}>Clear filters</button>
         </>
       }
     >
@@ -75,8 +71,8 @@ export function PayoutHistory() {
       ) : payouts.length === 0 ? (
         <div className="p-5">
           <EmptyState
-            title={status ? "No payouts with this status" : "No payouts yet"}
-            description="Payouts appear here once mechanics complete paid Service Requests."
+            title={status !== "all" ? "No payouts with this status" : "No payouts yet"}
+            description="No payout records were returned for the current filters."
           />
         </div>
       ) : (
@@ -92,11 +88,11 @@ export function PayoutHistory() {
               </tr></thead>
               <tbody>{payouts.map((payout) => (
                 <tr key={payout.id} className="border-t border-[#f3f5f7] dark:border-white/10">
-                  <th scope="row" className="px-5 py-4 text-left font-extrabold text-brand-dark dark:text-white">{payout.reference}
-                    {payout.failureReason ? <span className="mt-1 block max-w-56 text-xs font-semibold text-[#be123c] dark:text-red-300">{payout.failureReason}</span> : null}
+                  <th scope="row" className="px-5 py-4 text-left font-extrabold text-brand-dark dark:text-white">{payout.payout}
+                    <span className="mt-1 block max-w-56 text-xs font-semibold text-[#8f96a3]">{payout.payoutId}</span>
                   </th>
-                  <td className="px-3 py-4">{payout.mechanic.name}</td><td className="px-3 py-4">{METHOD_LABELS[payout.method]}</td>
-                  <td className="px-3 py-4">{formatDate(payout.initiatedAt)}</td><td className="px-3 py-4">{payout.completedAt ? formatDate(payout.completedAt) : "—"}</td>
+                  <td className="px-3 py-4">{payout.mechanic}</td><td className="px-3 py-4">{payout.method}</td>
+                  <td className="px-3 py-4">{payout.requested}</td><td className="px-3 py-4">{payout.completed}</td>
                   <td className="px-3 py-4"><StatusBadge status={payout.status} srLabel="Payout status" /></td>
                   <td className="whitespace-nowrap px-5 py-4 text-right font-extrabold text-brand-dark dark:text-white">{formatMoney(payout.amount, payout.currency)}</td>
                 </tr>
@@ -107,15 +103,11 @@ export function PayoutHistory() {
           {payouts.map((payout) => (
             <li key={payout.id} className="rounded-xl border border-[#eef0f3] p-4 dark:border-white/10">
               <div className="min-w-0 flex-1">
-                <p className="font-extrabold text-brand-dark dark:text-white">{payout.mechanic.name}</p>
+                <p className="font-extrabold text-brand-dark dark:text-white">{payout.payout} · {payout.mechanic}</p>
                 <p className="text-xs font-semibold text-[#8f96a3]">
-                  {payout.reference} · {METHOD_LABELS[payout.method]} · {payout.transactionIds.length} transaction
-                  {payout.transactionIds.length === 1 ? "" : "s"} · initiated {formatDate(payout.initiatedAt)}
-                  {payout.completedAt ? ` · paid ${formatDate(payout.completedAt)}` : ""}
+                  {payout.payoutId} · {payout.method} · requested {payout.requested}
+                  {payout.completedAt ? ` · completed ${payout.completed}` : ""}
                 </p>
-                {payout.failureReason ? (
-                  <p className="mt-1 text-xs font-semibold text-[#be123c] dark:text-red-300">{payout.failureReason}</p>
-                ) : null}
               </div>
               <div className="flex items-center gap-3 sm:justify-end">
                 <StatusBadge status={payout.status} srLabel="Payout status" />

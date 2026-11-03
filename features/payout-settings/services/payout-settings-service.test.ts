@@ -17,10 +17,10 @@ const documentedResponse = {
     policy: {
       settlementEnabled: true,
       settlementPeriodDays: 7,
-      minPayoutAmount: 50,
+      minPayoutAmount: 10,
       splits: [
-        { label: "Mechanic", entity: "mechanic", percent: 95 },
-        { label: "Company", entity: "company", percent: 5 },
+        { label: "Mechanic", entity: "mechanic", percent: 70 },
+        { label: "Company", entity: "company", percent: 30 },
       ],
     },
     platform: { entity: "platform", percent: 20, basis: "job_gross", editable: false, source: "commissions.mechanicServicePercent" },
@@ -49,7 +49,7 @@ describe("payout settings service", () => {
 
     await expect(getPayoutSettings()).resolves.toEqual({
       policy: documentedResponse.data.policy,
-      platform: { percent: 20, basis: "job_gross", editable: false },
+      platform: { entity: "platform", percent: 20, basis: "job_gross", editable: false, source: "commissions.mechanicServicePercent" },
       version: 1,
       effectiveFrom: "2026-09-22T18:01:00.131Z",
       source: "Company Override",

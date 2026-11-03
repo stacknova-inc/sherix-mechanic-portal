@@ -14,10 +14,12 @@ export interface PayoutPolicy {
 
 /** Sherix commission deducted before the split; read-only for companies. */
 export interface PlatformCommission {
+  entity: string | null;
   percent: number;
   /** e.g. "job_gross" */
   basis: string;
   editable: boolean;
+  source: string | null;
 }
 
 export interface PayoutSettings {
