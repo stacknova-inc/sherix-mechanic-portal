@@ -21,6 +21,8 @@ export interface Employee {
   email: string | null;
   serviceSpecialties: ServiceSpecialty[];
   services?: EmployeeServiceSummary[];
+  /** Service issues this employee handles (GET /issues/company). */
+  issues: EmployeeServiceSummary[];
   dateOfBirth: string;
   experienceLevel: ExperienceLevel;
   levelOfExperience?: ExperienceLevel;
@@ -40,6 +42,7 @@ export interface EmployeeFormValues {
   dateOfBirth: string;
   levelOfExperience: ExperienceLevel;
   serviceIds: string[];
+  issueIds: string[];
   profilePhoto?: FileList | null;
 }
 

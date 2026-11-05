@@ -64,7 +64,7 @@ export function EmployeesPage() {
     <DashboardShell>
       <PageHeader
         title="Employees"
-        description="Manage your mechanic fleet, track performance, and assign jobs."
+        description="Manage your mechanic fleet, track performance, and assign Service Requests."
         actions={
           <button
             type="button"
@@ -101,7 +101,7 @@ export function EmployeesPage() {
           title="Inactive"
           value={stats.inactive}
           trend=""
-          helper="Not accepting jobs"
+          helper="Not accepting assignments"
           icon={BriefcaseBusiness}
           tone="info"
         />
@@ -137,11 +137,6 @@ export function EmployeesPage() {
           </label>
 
           <div className="flex flex-wrap items-center gap-3">
-            <span className="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 dark:border-white/10 dark:text-white/65">
-              <SlidersHorizontal size={16} />
-              Filters
-            </span>
-
             <select
               value={filters.serviceType}
               onChange={(event) =>
@@ -179,28 +174,6 @@ export function EmployeesPage() {
             </select>
           </div>
         </div>
-
-        <div className="mt-4 flex items-center justify-end border-t border-gray-200 pt-4 dark:border-white/10">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-700 dark:text-white/60">Sort by:</span>
-            <select
-              value={filters.sortBy}
-              onChange={(event) =>
-                setFilters((currentFilters) => ({
-                  ...currentFilters,
-                  sortBy: event.target.value as EmployeeSortKey,
-                }))
-              }
-              className="rounded-md border border-gray-300 bg-white px-3 py-1 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-red-500 dark:border-white/10 dark:bg-[#202329] dark:text-white"
-            >
-              {EMPLOYEE_SORT_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
       </section>
 
       <div className="mt-6">
@@ -223,7 +196,7 @@ export function EmployeesPage() {
                 setStatusAction({ employee, action: "suspend" })
               }
               onActivate={(employee) => {
-                void reactivateEmployee(employee.id);
+                void reactivateEmployee(employee.id).catch(() => undefined);
               }}
               onEdit={(employee) => {
                 setEditingEmployee(employee);
@@ -292,13 +265,17 @@ export function EmployeesPage() {
             return;
           }
 
-          if (statusAction.action === "suspend") {
-            await deactivateEmployee(statusAction.employee.id);
-          } else {
-            await deleteEmployee(statusAction.employee.id);
-          }
+          try {
+            if (statusAction.action === "suspend") {
+              await deactivateEmployee(statusAction.employee.id);
+            } else {
+              await deleteEmployee(statusAction.employee.id);
+            }
 
-          setStatusAction(null);
+            setStatusAction(null);
+          } catch {
+            // The mutation hooks show the error toast and restore the cache.
+          }
         }}
       />
     </DashboardShell>

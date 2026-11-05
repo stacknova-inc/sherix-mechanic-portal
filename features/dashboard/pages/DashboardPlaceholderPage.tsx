@@ -5,8 +5,8 @@ import { DashboardShell } from "@/features/dashboard/layouts/DashboardShell";
 
 const pageCopy = {
   requests: {
-    title: "Requests",
-    description: "Review incoming jobs, assignments, and service progress.",
+    title: "Service Requests",
+    description: "Review incoming Service Requests, assignments, and service progress.",
     icon: Zap,
   },
   analytics: {
@@ -15,7 +15,7 @@ const pageCopy = {
     icon: BarChart3,
   },
   earnings: {
-    title: "Earnings & Payouts",
+    title: "Earnings & Transactions",
     description: "Monitor payouts, daily revenue, and settlement status.",
     icon: WalletCards,
   },

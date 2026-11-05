@@ -32,8 +32,8 @@ export const EMPLOYEE_SORT_OPTIONS: Array<{ label: string; value: EmployeeSortKe
   { label: "Least Active", value: "leastActive" },
   { label: "Name A-Z", value: "nameAsc" },
   { label: "Name Z-A", value: "nameDesc" },
-  { label: "Most Jobs", value: "jobsHigh" },
-  { label: "Least Jobs", value: "jobsLow" },
+  { label: "Most Completed Service Requests", value: "jobsHigh" },
+  { label: "Fewest Completed Service Requests", value: "jobsLow" },
 ];
 
 export const DEFAULT_EMPLOYEE_AVATAR =

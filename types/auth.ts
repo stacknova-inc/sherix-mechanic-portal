@@ -3,21 +3,18 @@ export type SignupStep = 1 | 2 | 3;
 export type UploadedFileKey =
   | "registrationCertificate"
   | "garageProof"
-  | "businessInsurance"
-  | "ghanaCard"
-  | "insuranceUpload";
+  | "businessInsurance";
 
 export type SignupFormData = {
   companyName: string;
-  businessEmail: string;
-  companyNumber: string;
+  registrationNumber: string;
   coverage_area: string;
+  personnelCount: string;
   fullName: string;
   personalEmail: string;
   password: string;
   confirmPassword: string;
   servicesOffered: string[];
-  workingHours: string;
   signedAgreementAccepted: boolean;
 };
 
@@ -28,6 +25,9 @@ export type AuthUser = {
   name: string;
   email: string;
   role?: string;
+  /** Returned by the API after company compliance review, when available. */
+  companyVerificationStatus?: "pending" | "approved" | "rejected" | "unknown";
+  companyVerificationReason?: string;
 };
 
 export type LoginCredentials = {
@@ -38,7 +38,7 @@ export type LoginCredentials = {
 };
 
 export type AuthResponse = {
-  token: string;
+  token?: string;
   user: AuthUser;
   message?: string;
 };

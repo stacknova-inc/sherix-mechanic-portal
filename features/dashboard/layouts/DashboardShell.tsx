@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { DashboardHeader } from "@/features/dashboard/layouts/DashboardHeader";
 import { DashboardSidebar } from "@/features/dashboard/layouts/DashboardSidebar";
-import { isCompanyAdmin, useAuthStore } from "@/store/auth-store";
+import { isCompanyAdmin, isCompanyApproved, useAuthStore } from "@/store/auth-store";
 import { cn } from "@/utils/cn";
 
 interface DashboardShellProps {
@@ -14,7 +14,7 @@ interface DashboardShellProps {
 export function DashboardShell({ children }: DashboardShellProps) {
   const router = useRouter();
   const { hasHydrated, logout, sidebarCollapsed, token, user } = useAuthStore();
-  const isAuthorized = Boolean(user && token && isCompanyAdmin(user));
+  const isAuthorized = Boolean(user && token && isCompanyAdmin(user) && isCompanyApproved(user));
 
   useEffect(() => {
     if (!hasHydrated) {
@@ -29,6 +29,9 @@ export function DashboardShell({ children }: DashboardShellProps) {
     if (!isCompanyAdmin(user)) {
       logout();
       router.replace("/sign-in");
+    }
+    if (!isCompanyApproved(user)) {
+      router.replace("/company-onboarding/verification-status");
     }
   }, [hasHydrated, logout, router, token, user]);
 

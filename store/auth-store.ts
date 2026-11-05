@@ -20,31 +20,35 @@ export function isCompanyAdmin(user: Pick<AuthUser, "role"> | null | undefined) 
   return normalizeRole(user?.role) === COMPANY_ADMIN_ROLE;
 }
 
+export function isCompanyApproved(user: Pick<AuthUser, "companyVerificationStatus"> | null | undefined) {
+  // Older login responses do not yet include a company status. In that case the
+  // API remains the authority; explicit pending/rejected states are always gated.
+  return !user?.companyVerificationStatus || user.companyVerificationStatus === "approved" || user.companyVerificationStatus === "unknown";
+}
+
 const SIGNUP_FORM_DATA_KEYS = [
   "companyName",
-  "businessEmail",
-  "companyNumber",
+  "registrationNumber",
   "coverage_area",
+  "personnelCount",
   "fullName",
   "personalEmail",
   "password",
   "confirmPassword",
   "servicesOffered",
-  "workingHours",
   "signedAgreementAccepted",
 ] as const satisfies readonly (keyof SignupFormData)[];
 
 export const initialSignupData: SignupFormData = {
   companyName: "",
-  businessEmail: "",
-  companyNumber: "",
+  registrationNumber: "",
   coverage_area: "",
+  personnelCount: "",
   fullName: "",
   personalEmail: "",
   password: "",
   confirmPassword: "",
   servicesOffered: [],
-  workingHours: "",
   signedAgreementAccepted: false,
 };
 

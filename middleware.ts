@@ -9,6 +9,9 @@ const PROTECTED_ROUTE_PREFIXES = [
   "/earnings",
   "/notifications",
   "/settings",
+  "/performance",
+  "/support",
+  "/disputes",
 ];
 
 function isProtectedRoute(pathname: string) {
@@ -37,11 +40,15 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     "/sign-in",
+    "/company-onboarding/:path*",
     "/dashboard/:path*",
     "/employee/:path*",
     "/requests/:path*",
     "/earnings/:path*",
     "/notifications/:path*",
     "/settings/:path*",
+    "/performance/:path*",
+    "/support/:path*",
+    "/disputes/:path*",
   ],
 };

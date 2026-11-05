@@ -1,242 +1,148 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { CheckCircle2, Clock3, FileCheck2, FileText } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { DashboardShell } from "@/features/dashboard/layouts/DashboardShell";
-import { RequestStatsCard } from "@/features/requests/components/RequestStatsCard";
-import {
-  RequestTabs,
-  type RequestTab,
-} from "@/features/requests/components/RequestTabs";
+import { ServiceRequestStatsRow } from "@/features/requests/components/ServiceRequestStatsRow";
 import { RequestsHeader } from "@/features/requests/components/RequestsHeader";
 import { RequestsTable } from "@/features/requests/components/RequestsTable";
-import { getAdminBookings } from "@/features/requests/services/bookings-service";
-import { isCompanyAdmin, useAuthStore } from "@/store/auth-store";
-import type { AdminRequest, RequestSortKey } from "@/features/requests/types";
+import { ReassignServiceRequestDialog } from "@/features/requests/components/ReassignServiceRequestDialog";
+import { useCompanyServiceRequestPage } from "@/features/requests/hooks/useCompanyServiceRequests";
+import type { CompanyServiceRequest, ServiceRequestFilters } from "@/features/requests/types";
+import {
+  buildServiceRequestSearchParams,
+  defaultServiceRequestFilters,
+  getDistinctOptions,
+  getMechanicKey,
+  getMechanicLabel,
+  parsePageParam,
+  parseServiceRequestFilters,
+  sortServiceRequests,
+} from "@/features/requests/utils/service-request-filters";
+import { formatStatusLabel } from "@/features/requests/utils/service-request-status";
 
-const statsIcons = [FileText, Clock3, CheckCircle2, FileCheck2];
-const pageSize = 6;
-const priorityRank = { Low: 1, Medium: 2, High: 3, Urgent: 4 };
-
-function getSortValue(request: AdminRequest, key: RequestSortKey) {
-  if (key === "date") {
-    const timestamp = new Date(request.date).getTime();
-    return Number.isNaN(timestamp) ? 0 : timestamp;
-  }
-
-  if (key === "priority") {
-    return priorityRank[request.priority];
-  }
-
-  return request[key].toLowerCase();
-}
+const SEARCH_DEBOUNCE_MS = 300;
+const NO_REQUESTS: CompanyServiceRequest[] = [];
 
 export function RequestsManagementPage() {
-  const { hasHydrated, token, user } = useAuthStore();
-  const canFetchBookings = hasHydrated && Boolean(token && isCompanyAdmin(user));
-  const bookingsQuery = useQuery({
-    queryKey: ["company-admin-bookings"],
-    queryFn: getAdminBookings,
-    enabled: canFetchBookings,
-  });
-  const [searchValue, setSearchValue] = useState("");
-  const [typeFilter, setTypeFilter] = useState("all");
-  const [activeTab, setActiveTab] = useState<RequestTab>("All");
-  const [sortKey, setSortKey] = useState<RequestSortKey>("date");
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [page, setPage] = useState(1);
-  const requestData = bookingsQuery.data ?? [];
-  const isLoading = bookingsQuery.isLoading;
-
-  const counts = useMemo(
-    () => ({
-      All: requestData.length,
-      Pending: requestData.filter((request) => request.status === "Pending")
-        .length,
-      Approved: requestData.filter((request) => request.status === "Approved")
-        .length,
-      Rejected: requestData.filter((request) => request.status === "Rejected")
-        .length,
-      "In Review": requestData.filter(
-        (request) => request.status === "In Review",
-      ).length,
-      Completed: requestData.filter((request) => request.status === "Completed")
-        .length,
-    }),
-    [requestData],
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const filters = useMemo(() => parseServiceRequestFilters(searchParams), [searchParams]);
+  const requestedPage = parsePageParam(searchParams);
+  const requestsQuery = useCompanyServiceRequestPage(filters, requestedPage);
+  const requests = useMemo(
+    () => sortServiceRequests(requestsQuery.data?.requests ?? NO_REQUESTS, filters.sort),
+    [requestsQuery.data?.requests, filters.sort],
   );
 
-  const requestStats = useMemo(
-    () => [
-      {
-        title: "Total Requests",
-        value: counts.All.toLocaleString(),
-        helper: "from backend bookings",
-      },
-      {
-        title: "Pending Requests",
-        value: counts.Pending.toLocaleString(),
-        helper: "awaiting action",
-      },
-      {
-        title: "Approved Requests",
-        value: counts.Approved.toLocaleString(),
-        helper: "accepted bookings",
-      },
-      {
-        title: "Completed Requests",
-        value: counts.Completed.toLocaleString(),
-        helper: "finished bookings",
-      },
-    ],
-    [counts],
+  const [searchDraft, setSearchDraft] = useState(filters.search);
+  const [requestToReassign, setRequestToReassign] = useState<CompanyServiceRequest | null>(null);
+  const lastPushedSearch = useRef(filters.search);
+
+  const replaceUrl = useCallback(
+    (nextFilters: ServiceRequestFilters, page: number) => {
+      const query = buildServiceRequestSearchParams(nextFilters, page).toString();
+      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    },
+    [router, pathname],
   );
 
-  const filteredRequests = useMemo(() => {
-    const query = searchValue.trim().toLowerCase();
+  // Filter changes always return to the first page.
+  function updateFilters(next: Partial<ServiceRequestFilters>) {
+    replaceUrl({ ...filters, ...next }, 1);
+  }
 
-    return requestData
-      .filter((request) => activeTab === "All" || request.status === activeTab)
-      .filter(
-        (request) => typeFilter === "all" || request.requestType === typeFilter,
-      )
-      .filter((request) => {
-        if (!query) {
-          return true;
-        }
+  function clearFilters() {
+    lastPushedSearch.current = "";
+    setSearchDraft("");
+    replaceUrl(defaultServiceRequestFilters, 1);
+  }
 
-        return [
-          request.id,
-          request.employeeName,
-          request.department,
-          request.requestType,
-          request.status,
-          request.assignedTo,
-        ]
-          .join(" ")
-          .toLowerCase()
-          .includes(query);
-      })
-      .sort((first, second) => {
-        const firstValue = getSortValue(first, sortKey);
-        const secondValue = getSortValue(second, sortKey);
-        const modifier = sortDirection === "asc" ? 1 : -1;
-
-        if (firstValue > secondValue) {
-          return modifier;
-        }
-
-        if (firstValue < secondValue) {
-          return -modifier;
-        }
-
-        return 0;
-      });
-  }, [activeTab, searchValue, sortDirection, sortKey, typeFilter]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredRequests.length / pageSize));
-  const currentPage = Math.min(page, totalPages);
-  const pagedRequests = filteredRequests.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize,
-  );
-
-  function handleSort(key: RequestSortKey) {
-    if (sortKey === key) {
-      setSortDirection((current) => (current === "asc" ? "desc" : "asc"));
+  useEffect(() => {
+    if (searchDraft === filters.search) {
       return;
     }
 
-    setSortKey(key);
-    setSortDirection("asc");
-  }
+    // Depends on the full filter state so a filter changed mid-debounce is not overwritten.
+    const timeout = window.setTimeout(() => {
+      lastPushedSearch.current = searchDraft;
+      replaceUrl({ ...filters, search: searchDraft }, 1);
+    }, SEARCH_DEBOUNCE_MS);
 
-  function handleTabChange(tab: RequestTab) {
-    setActiveTab(tab);
-    setPage(1);
-    setSelectedIds([]);
-  }
+    return () => window.clearTimeout(timeout);
+  }, [searchDraft, filters, replaceUrl]);
 
-  function handleSearchChange(value: string) {
-    setSearchValue(value);
-    setPage(1);
-  }
+  // Adopt search values that arrive from navigation (drill-down links, back button)
+  // without overwriting text the user is still typing.
+  useEffect(() => {
+    if (filters.search !== lastPushedSearch.current) {
+      lastPushedSearch.current = filters.search;
+      setSearchDraft(filters.search);
+    }
+  }, [filters.search]);
 
-  const requestErrorMessage = bookingsQuery.isError
-    ? "Unable to load bookings from the backend."
-    : undefined;
+  const pagination = requestsQuery.data;
 
-  function handleFilterChange(value: string) {
-    setTypeFilter(value);
-    setPage(1);
-  }
+  useEffect(() => {
+    if (pagination && pagination.page !== requestedPage) replaceUrl(filters, pagination.page);
+  }, [pagination?.page, requestedPage, filters, replaceUrl]);
 
-  function handleToggleAll() {
-    const visibleIds = pagedRequests.map((request) => request.id);
-    const allVisibleSelected = visibleIds.every((id) =>
-      selectedIds.includes(id),
-    );
+  const statusOptions = useMemo(
+    () => getDistinctOptions(requests, (request) => request.status, (_request, value) => formatStatusLabel(value)),
+    [requests],
+  );
+  const mechanicOptions = useMemo(
+    () => getDistinctOptions(requests, getMechanicKey, getMechanicLabel),
+    [requests],
+  );
+  const paymentStatusOptions = useMemo(
+    () => getDistinctOptions(requests, (request) => request.paymentStatus, (_request, value) => formatStatusLabel(value)),
+    [requests],
+  );
 
-    setSelectedIds((current) =>
-      allVisibleSelected
-        ? current.filter((id) => !visibleIds.includes(id))
-        : Array.from(new Set([...current, ...visibleIds])),
-    );
-  }
-
-  function handleToggleRow(id: string) {
-    setSelectedIds((current) =>
-      current.includes(id)
-        ? current.filter((selectedId) => selectedId !== id)
-        : [...current, id],
-    );
-  }
+  const hasActiveFilters =
+    Boolean(searchDraft.trim()) ||
+    Boolean(filters.status || filters.mechanic || filters.paymentStatus || filters.from || filters.to);
 
   return (
     <DashboardShell>
+      <RequestsHeader
+        searchValue={searchDraft}
+        filters={filters}
+        statusOptions={statusOptions}
+        mechanicOptions={mechanicOptions}
+        paymentStatusOptions={paymentStatusOptions}
+        hasActiveFilters={hasActiveFilters}
+        onSearchChange={setSearchDraft}
+        onFilterChange={updateFilters}
+        onClearFilters={clearFilters}
+      />
+
       <div className="space-y-7">
-        <RequestsHeader
-          searchValue={searchValue}
-          filterValue={typeFilter}
-          onSearchChange={handleSearchChange}
-          onFilterChange={handleFilterChange}
-        />
-
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {requestStats.map((stat, index) => (
-            <RequestStatsCard
-              key={stat.title}
-              title={stat.title}
-              value={stat.value}
-              helper={stat.helper}
-              icon={statsIcons[index]}
-            />
-          ))}
-        </div>
-
-        <RequestTabs
-          activeTab={activeTab}
-          counts={counts}
-          onChange={handleTabChange}
-        />
+        <ServiceRequestStatsRow filters={filters} />
 
         <RequestsTable
-          requests={pagedRequests}
-          isLoading={isLoading}
-          errorMessage={requestErrorMessage}
-          selectedIds={selectedIds}
-          sortKey={sortKey}
-          sortDirection={sortDirection}
-          page={currentPage}
-          totalPages={totalPages}
-          onToggleAll={handleToggleAll}
-          onToggleRow={handleToggleRow}
-          onSort={handleSort}
-          onPageChange={setPage}
+          requests={requests}
+          isLoading={requestsQuery.isLoading}
+          error={requestsQuery.isError ? requestsQuery.error : null}
+          hasAnyRequests={(pagination?.total ?? 0) > 0}
+          hasActiveFilters={hasActiveFilters}
+          page={pagination?.page ?? requestedPage}
+          totalPages={pagination?.pages ?? 1}
+          totalMatching={pagination?.total ?? 0}
+          onPageChange={(page) => replaceUrl(filters, page)}
+          onRetry={() => void requestsQuery.refetch()}
+          onClearFilters={clearFilters}
+          onReassign={setRequestToReassign}
         />
       </div>
+      {requestToReassign ? (
+        <ReassignServiceRequestDialog
+          request={requestToReassign}
+          onClose={() => setRequestToReassign(null)}
+        />
+      ) : null}
     </DashboardShell>
   );
 }
