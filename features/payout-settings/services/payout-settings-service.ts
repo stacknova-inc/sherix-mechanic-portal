@@ -10,56 +10,63 @@ import type {
 
 const PAYOUT_SETTINGS_PATH = "/companies/payout-settings";
 const IMPACT_PREVIEW_PATH = `${PAYOUT_SETTINGS_PATH}/impact-preview`;
-/**
- * The API docs do not state the method for "Set company payout options".
- * PATCH matches the platform's other versioned settings endpoint (PATCH /policy-config).
- */
-const UPDATE_METHOD = "patch" as const;
 const MAX_PREVIEW_ENTRIES = 40;
 
 type Envelope<T> = { success?: boolean; message?: string; data?: T };
 
 type BackendSettings = {
   policy?: Partial<PayoutPolicy> & { splits?: Array<Partial<PayoutSplit>> };
-  platform?: { percent?: number; basis?: string; editable?: boolean } | null;
+  platform?: { entity?: string; percent?: number; basis?: string; editable?: boolean; source?: string } | null;
   version?: number;
   effectiveFrom?: string | null;
   source?: string | null;
   isOverride?: boolean;
 };
 
-function toNumber(value: unknown, fallback = 0) {
+function requiredNumber(value: unknown, field: string) {
   const number = Number(value);
-  return Number.isFinite(number) ? number : fallback;
-}
-
-function normalizeSplit(split: Partial<PayoutSplit>): PayoutSplit {
-  const entity = split.entity ?? "unknown";
-  return {
-    label: split.label ?? entity.charAt(0).toUpperCase() + entity.slice(1),
-    entity,
-    percent: toNumber(split.percent),
-  };
+  if (value === null || value === undefined || value === "" || !Number.isFinite(number)) {
+    throw new Error(`Payout settings response is missing a valid ${field}.`);
+  }
+  return number;
 }
 
 export function normalizePayoutSettings(settings: BackendSettings): PayoutSettings {
   const policy = settings.policy ?? {};
+  if (typeof policy.settlementEnabled !== "boolean") {
+    throw new Error("Payout settings response is missing settlementEnabled.");
+  }
+  if (!Array.isArray(policy.splits)) {
+    throw new Error("Payout settings response is missing revenue splits.");
+  }
+  const splits = policy.splits.map((split) => {
+    if (typeof split.entity !== "string" || typeof split.label !== "string") {
+      throw new Error("Payout settings response contains an invalid revenue split.");
+    }
+    return {
+      label: split.label,
+      entity: split.entity,
+      percent: requiredNumber(split.percent, `split percent for ${split.entity}`),
+    };
+  });
 
   return {
     policy: {
-      settlementEnabled: Boolean(policy.settlementEnabled),
-      settlementPeriodDays: toNumber(policy.settlementPeriodDays),
-      minPayoutAmount: toNumber(policy.minPayoutAmount),
-      splits: (policy.splits ?? []).map(normalizeSplit),
+      settlementEnabled: policy.settlementEnabled,
+      settlementPeriodDays: requiredNumber(policy.settlementPeriodDays, "settlementPeriodDays"),
+      minPayoutAmount: requiredNumber(policy.minPayoutAmount, "minPayoutAmount"),
+      splits,
     },
     platform: settings.platform
       ? {
-          percent: toNumber(settings.platform.percent),
+          entity: settings.platform.entity ?? null,
+          percent: requiredNumber(settings.platform.percent, "platform percent"),
           basis: settings.platform.basis ?? "",
-          editable: Boolean(settings.platform.editable),
+          editable: settings.platform.editable === true,
+          source: settings.platform.source ?? null,
         }
       : null,
-    version: toNumber(settings.version),
+    version: requiredNumber(settings.version, "version"),
     effectiveFrom: settings.effectiveFrom ?? null,
     source: settings.source ?? null,
     isOverride: Boolean(settings.isOverride),
@@ -123,7 +130,7 @@ export async function getPayoutSettings(): Promise<PayoutSettings> {
   return normalizePayoutSettings(unwrap(response.data) ?? {});
 }
 
-/** POST /companies/payout-settings/impact-preview — read-only. */
+/** POST /companies/payout-settings/impact-preview. */
 export async function previewPayoutSettings(policy: PayoutPolicy): Promise<PayoutImpactPreview> {
   const response = await apiClient.post<unknown>(IMPACT_PREVIEW_PATH, policy);
   return normalizeImpactPreview(response.data);
@@ -131,5 +138,5 @@ export async function previewPayoutSettings(policy: PayoutPolicy): Promise<Payou
 
 /** Saves the policy with optimistic concurrency (expectedVersion); the backend returns 409 when stale. */
 export async function updatePayoutSettings(input: UpdatePayoutSettingsInput): Promise<void> {
-  await apiClient[UPDATE_METHOD](PAYOUT_SETTINGS_PATH, input);
+  await apiClient.patch(PAYOUT_SETTINGS_PATH, input);
 }

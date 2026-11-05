@@ -1,5 +1,5 @@
 import { buildBreakdown, sampleMechanicShare } from "@/features/earnings/mocks/earnings-sample";
-import type { CommissionBreakdown, PayoutStatus } from "@/features/earnings/types";
+import type { LegacyCommissionBreakdown, PayoutStatus } from "@/features/earnings/types";
 import { mockRequest } from "@/mocks/mock-request";
 import { SAMPLE_CURRENCY, createRandom } from "@/mocks/sample-data";
 
@@ -27,7 +27,7 @@ export interface ServiceRequestExtras {
   financials: {
     currency: string;
     transactionReference: string;
-    breakdown: CommissionBreakdown;
+    breakdown: LegacyCommissionBreakdown;
     payoutStatus: PayoutStatus;
   } | null;
   dispute: { id: string; status: "open" | "under_review" | "resolved" } | null;

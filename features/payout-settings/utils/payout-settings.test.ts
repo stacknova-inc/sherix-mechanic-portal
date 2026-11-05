@@ -20,7 +20,7 @@ const settings: PayoutSettings = {
       { label: "Company", entity: "company", percent: 5 },
     ],
   },
-  platform: { percent: 20, basis: "job_gross", editable: false },
+  platform: { entity: "platform", percent: 20, basis: "job_gross", editable: false, source: "commissions.mechanicServicePercent" },
   version: 1,
   effectiveFrom: null,
   source: null,
