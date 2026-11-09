@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev ",
-    "build": "next build",
-    "start": "next start",
+    "dev": "node init && next dev ",
+    "build": "node init && next build",
+    "start": "node init && next start",
     "lint": "next lint",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -17,8 +17,10 @@
     "axios": "^1.7.9",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "dotenv": "^8.2.0",
     "lucide-react": "^0.468.0",
     "next": "^16.2.7",
+    "node-fetch": "^3.3.2",
     "radix-ui": "^1.6.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
