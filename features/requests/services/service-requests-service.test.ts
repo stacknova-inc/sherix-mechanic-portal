@@ -153,7 +153,7 @@ describe("mechanic reassignment endpoints", () => {
     await expect(getReassignableCompanyMechanics("request/1")).resolves.toEqual([
       { id: "mechanic/1", name: "Ama Mechanic" },
     ]);
-    expect(api.get).toHaveBeenCalledWith("/company-admin/request%2F1/reassignable-mechanics");
+    expect(api.get).toHaveBeenCalledWith("service-requests/company-admin/request%2F1/reassignable-mechanics");
   });
 
   it("posts the selected mechanic and reason to the assign endpoint", async () => {

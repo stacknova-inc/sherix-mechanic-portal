@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { MechanicQualityMetrics } from "@/features/performance/types";
 import { getPerformanceInsights } from "@/features/performance/services/performance-insights-service";
 import {
@@ -7,6 +7,13 @@ import {
   formatRating,
   sortQualityMetrics,
 } from "@/features/performance/utils/quality-metrics";
+
+vi.mock("@/features/earnings/services/earnings-service", () => ({
+  getTransactions: vi.fn().mockResolvedValue({
+    data: [],
+    pagination: { total: 0, page: 1, limit: 100, pages: 0 },
+  }),
+}));
 
 function row(mechanicName: string, averageRating: number | null, earnings: number): MechanicQualityMetrics {
   return {
